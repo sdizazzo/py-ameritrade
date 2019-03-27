@@ -1,0 +1,8 @@
+{
+    "client"                : {      
+        "client_id"                  : "MyAppName",
+        "account_id"                 : "123456789",
+        "redirect_url"               : "https://127.0.0.1",
+        "refresh_token"              : ""
+    }
+}

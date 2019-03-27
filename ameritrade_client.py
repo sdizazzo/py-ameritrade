@@ -22,10 +22,13 @@ class NoValue(Enum):
         return '<%s.%s>' % (self.__class__.__name__, self.name)
 
 class AmeritradeURLs(NoValue):
-    TOKEN = "https://api.tdameritrade.com/v1/oauth2/token"
-    QUOTES = "https://api.tdameritrade.com/v1/marketdata/%s/quotes"
-    SEARCH_INSTRUMENTS = "https://api.tdameritrade.com/v1/instruments"
+    ROOT = "https://api.tdameritrade.com/v1"
+    TOKEN = ROOT + "/oauth2/token"
+    GET_ACCOUNT = ROOT + "/accounts/%s"
+    QUOTES = ROOT + "/marketdata/%s/quotes"
+    SEARCH_INSTRUMENTS = ROOT + "/instruments"
     GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
+
 
 class RestAPI(object):
     logger = logging.getLogger('ameritrade.RestAPI')
@@ -74,6 +77,20 @@ class RestAPI(object):
         """
         return self.get(AmeritradeURLs.SEARCH_INSTRUMENTS.value, {'symbol':symbol, 'projection':projection})
 
+    ############################################################
+    #### Accounts
+    ############################################################
+
+    def get_account(self, account_id=None, fields=None):
+        """
+        Balances displayed by default, additional fields can be added here by adding positions or orders
+        Example: fields=positions,orders
+        """
+        if not account_id:
+            account_id = self.account_id
+        if fields:
+            fields = {'fields': fields}
+        return self.get(AmeritradeURLs.GET_ACCOUNT.value % account_id, fields)
 
 class RequestError(Exception):
     logger = logging.getLogger('ameritrade.RequestError')
@@ -119,7 +136,8 @@ class AmeritradeItem():
             return QuoteItem(json, client)
         elif url in (AmeritradeURLs.GET_INSTRUMENT.value, AmeritradeURLs.SEARCH_INSTRUMENTS.value):
             return InstrumentItem(json, client)
-
+        elif url == AmeritradeURLs.GET_ACCOUNT.value:
+            return AccountItem(json, client)
 
     def __repr__(self):
         desc = "< "
@@ -189,6 +207,17 @@ class InstrumentItem(AmeritradeItem):
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
+
+class AccountItem(AmeritradeItem):
+    logger = logging.getLogger('ameritrade.AccountItem')
+
+    def __init__(self, json, client):
+        AmeritradeItem.__init__(self, json, client)
+
+    #TODO Shouldn't have to repeat this on each subclass
+    def __repr__(self):
+        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
+
 class AmeritradeResponse():
     logger = logging.getLogger('ameritrade.Response')
 
@@ -213,12 +242,30 @@ class AmeritradeClient(RestAPI):
     # do we even need this?
     POST_HEADERS = {'Content-Type': 'application/json' }
 
-    def __init__(self, client_id, redirect_url, refresh_token, access_token=None):
+    def __init__(self, client_id, account_id, redirect_url, refresh_token, access_token=None):
         self.client_id = client_id
+        self.account_id = account_id
         self.redirect_url = redirect_url
         self.access_token = access_token
         self.refresh_token = refresh_token
 
+    @classmethod
+    def from_config(klass, path):
+        with open(path, 'r') as fo:
+            try:
+                config = ujson.load(fo)
+            except ValueError:
+                klass.logger.critical("Error parsing config file: %s.  Please review for errors and try again." % path)
+                sys.exit(1)
+
+        client = config['client']
+
+        client_id = client['client_id']
+        account_id = client['account_id'] # NOTE this doesn't really need to be mandatory
+        redirect_url = client['redirect_url']
+        refresh_token = client['refresh_token']
+
+        return AmeritradeClient(client_id, account_id, redirect_url, refresh_token)
 
     def get(self, url, params=None, headers=None, timeout=2):
         self.logger.info('GET %s' % url)
@@ -241,8 +288,6 @@ class AmeritradeClient(RestAPI):
 
     def post(self, url, params, headers=None, timeout=2):
         self.logger.info('POST %s' % url)
-        #Do we even need this?
-        #params.update((k, urllib.parse.unquote(v)) for k, v in params.items())
 
         if not headers:
             headers = self.POST_HEADERS
@@ -260,10 +305,7 @@ class AmeritradeClient(RestAPI):
 
 
 if __name__ == '__main__':
-    CLIENT_ID = 'FF7C19B25AF18'
-    REDIRECT_URL = 'https://10.0.1.103'
-    REFRESH_TOKEN = 'F3dw4plOC2ChbUuiQFCIyGpVjggIJNfJx8z0xq7UFv5NH/aC0KUUcq23M9mXf866UqmeCmt8g9vglVre+6zWiDkcbR89pst6JO+wrbv1ZYR8uStGIp02bCDa89/T1KNyRy1bhSw0jAuFEeyU6/wmdK1B8GOrR5rF2PNThUn90/tDuJqPBGQdc9TqKp1Hg5pGNTwKsPkbog0BZsdcZhdX/w6LjooiTjW7ux4sAhr3w7JV4QBBqcLwJ+HUEy6jmlGYRSkfZQ1wrDDmj4aDwyC6DV/Ih2Owt4O3AETyJYTBJJEc+MdLI3WYYS7PwnaMdiHu94+v7a20gN9OMVfIwHGKrvCCA87TPBRO13hPGtLXdcK3Tv4yUiJ6tYzIXjmJ5xH4qF4BqAicMrwYrQ0cP471jlwK8033K7GINsCXVztymqwQcPxjrkLOksFDHm5100MQuG4LYrgoVi/JHHvl9H9TDb2kEqCev9akh6Hph9bCdPY1vLnE2pRxk9g/XNYWsXxXFmGUjFU7GhrAkmRtEFPEwGG8x4fLWgT2zBAHGqZ5tg4s7vzDH8ynvksYY7iU3TL6hHJ9esKUaNIHhsRbsPHTUqf+kpJ8w9vfoby2cANXO/qbrQVLxWlFO1hlazCZdJE82vE3bpj3YqvruGtqpopPfAQB6yK/9zIMXaYODkIaMqf4PkOF+h6+22jCWqseG/nwRCxVBSTgfNFczzzE33eGoku89u+jQ9dYLEMrGvBG0w5cy3z9RwMLfjY95u1OOMj0e7nXbrVTr7N8d7ne4EzXSoLXGu/jattWe76qzHmUZdMbKiwfmpYOiE9u+Pap0YBe7hXdPsf7oEUCvcnyb7OPYaxZBmph2Ft/Bl+KO14KnVv24bO4mccCLsP9HcbtcM77EEFG5gA11lk=212FD3x19z9sWBHDJACbC00B75E'
-    client = AmeritradeClient(CLIENT_ID, REDIRECT_URL, REFRESH_TOKEN)
-    #print(client.grant_refresh_token())
+    client = AmeritradeClient.from_config('client.config')
+    client.grant_refresh_token()
     print(client.get_quote('PTN'))
 
