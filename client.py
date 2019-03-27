@@ -24,7 +24,8 @@ class NoValue(Enum):
 class AmeritradeURLs(NoValue):
     TOKEN = "https://api.tdameritrade.com/v1/oauth2/token"
     QUOTES = "https://api.tdameritrade.com/v1/marketdata/%s/quotes"
-
+    SEARCH_INSTRUMENTS = "https://api.tdameritrade.com/v1/instruments"
+    GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
 
 class RestAPI(object):
     logger = logging.getLogger('ameritrade.RestAPI')
@@ -51,6 +52,27 @@ class RestAPI(object):
 
     def get_quote(self, symbol):
         return self.get(AmeritradeURLs.QUOTES.value % symbol)
+
+    ############################################################
+    #### Instruments
+    ############################################################
+
+    def get_instrument(self, cusip):
+        return self.get(AmeritradeURLs.GET_INSTRUMENT.value % cusip)
+
+    def search_instruments(self, symbol, projection):
+        """
+        symbol:  Value to pass to the search
+
+        projection:
+        ~~~~~~~~~~~
+        symbol-search: Retrieve instrument data of a specific symbol or cusip
+        symbol-regex: Retrieve instrument data for all symbols matching regex. Example: symbol=XYZ.* will return all symbols beginning with XYZ
+        desc-search: Retrieve instrument data for instruments whose description contains the word supplied. Example: symbol=FakeCompany will return all instruments with FakeCompany in the description.
+        desc-regex: Search description with full regex support. Example: symbol=XYZ.[A-C] returns all instruments whose descriptions contain a word beginning with XYZ followed by a character A through C.
+        fundamental: Returns fundamental data for a single instrument specified by exact symbol.
+        """
+        return self.get(AmeritradeURLs.SEARCH_INSTRUMENTS.value, {'symbol':symbol, 'projection':projection})
 
 
 class RequestError(Exception):
@@ -83,13 +105,21 @@ class RequestError(Exception):
 class AmeritradeItem():
     logger = logging.getLogger('ameritrade.Item')
 
+    def __init__(self, json, client):
+        self.json = json
+        self.client = client
+
     @classmethod
     def parse(klass, url, json, client):
-        #check url to see which type of response we are expecting
+        #check url to see which type of response we are expecting,
+        # hence which type of Item to return
         if url == AmeritradeURLs.TOKEN.value:
             return TokenItem(json, client)
         elif url == AmeritradeURLs.QUOTES.value:
             return QuoteItem(json, client)
+        elif url in (AmeritradeURLs.GET_INSTRUMENT.value, AmeritradeURLs.SEARCH_INSTRUMENTS.value):
+            return InstrumentItem(json, client)
+
 
     def __repr__(self):
         desc = "< "
@@ -98,6 +128,7 @@ class AmeritradeItem():
             desc += "%s : %s, " % (k, v)
         desc += " >"
         return desc
+
 
 
 class TokenItem(AmeritradeItem):
@@ -115,7 +146,12 @@ class TokenItem(AmeritradeItem):
     """
 
     def __init__(self, json, client):
-        self.client = client
+        AmeritradeItem.__init__(self, json, client)
+
+        #TODO Should these be dynamic?!?!
+        # THERE's going to be lots of classes and attributes
+
+        #   YES
         self.client.access_token = self.access_token = json.get('access_token')
         self.refresh_token = json.get('refresh_token')
         self.token_type = json.get('token_type')
@@ -126,6 +162,7 @@ class TokenItem(AmeritradeItem):
 
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
+
 
 class QuoteItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.QuoteItem')
@@ -139,10 +176,18 @@ class QuoteItem(AmeritradeItem):
     # ETF
     # Equity
 
-
+    #just start with equity for now
     
 
+class InstrumentItem(AmeritradeItem):
+    logger = logging.getLogger('ameritrade.InstrumentItem')
 
+    def __init__(self, json, client):
+        AmeritradeItem.__init__(self, json, client)
+
+    #TODO Shouldn't have to repeat this on each subclass
+    def __repr__(self):
+        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
 class AmeritradeResponse():
     logger = logging.getLogger('ameritrade.Response')
@@ -159,7 +204,7 @@ class AmeritradeResponse():
             raise RequestError(url=self.url, request=self.raw_response.request, response=self.raw_response)
 
         response_item = AmeritradeItem.parse(url, self.raw_response.json(), client)
-
+        pp.pprint(self.raw_response.json())
 
 
 class AmeritradeClient(RestAPI):
