@@ -2,17 +2,17 @@
 
 import sys, os
 import logging
-
+from datetime import datetime, timedelta
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 from ameritrade_client import AmeritradeClient
 
-
+import urllib.parse
 
 if __name__ == '__main__':
     logger = logging.getLogger('ameritrade')
-    formatter = logging.Formatter('%(asctime)s - %(name)40s - %(levelname)10s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(name)30s - %(levelname)10s - %(message)s')
     #logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
@@ -23,7 +23,9 @@ if __name__ == '__main__':
 
     client = AmeritradeClient.from_config('client.config')
     resp = client.grant_refresh_token()
-    #resp = client.get_quote('GCM19')
-    #resp = client.get_instrument('GC')
-    #resp = client.search_instruments('.*GC', 'symbol-regex')
-    resp = client.get_account(fields='positions,orders')
+    #resp = client.get_quote('/GC,/GCM19')
+    #resp = client.get_instrument('OGM19')
+    #resp = client.search_instruments(r'/G.*', 'symbol-regex')
+    #resp = client.get_account(fields='positions')
+    resp = client.get_price_history('ptn', frequency='1', start_date=datetime.now()-timedelta(days=30), end_date=datetime.now()-timedelta(days=20))
+    #resp = client.get_price_history('ptn', period_type='day', frequency_type='minute', frequency=30)
