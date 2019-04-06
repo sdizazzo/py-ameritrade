@@ -50,7 +50,7 @@ class AmeritradeURLs(NoValue):
     GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
 
 
-class RestAPI(object):
+class RestAPI():
     logger = logging.getLogger('ameritrade.RestAPI')
 
     ############################################################
@@ -254,11 +254,7 @@ class AmeritradeFee():
     # Not sure if this matters or not
     ## TAX_RATE = ??
 
-#
-# TODO This doesn't really make sense as a base class
-#      It's more like a factory.
-#      Consider a refactor so it makes more sense.
-#
+
 class AmeritradeItem():
     logger = logging.getLogger('ameritrade.Item')
 
@@ -266,34 +262,9 @@ class AmeritradeItem():
         self.json = json
         self.client = client
 
-        #for k, v in self.json.items():
-        #    setattr(self, k, v)
+        for k, v in self.json.items():
+            setattr(self, k, v)
 
-
-    @classmethod
-    def parse(klass, url, json, client):
-        # check url to see which type of response we are expecting,
-        # hence which type of items to return
-
-        if url == AmeritradeURLs.TOKEN.value:
-            return TokenItem(json, client)
-
-        elif url == AmeritradeURLs.QUOTES.value:
-            quotes = list()
-            for symbol, quote_json in json.items():
-                quotes.append(QuoteItem(symbol, quote_json, client))
-            return quotes
-
-        elif url in (AmeritradeURLs.GET_INSTRUMENT.value, AmeritradeURLs.SEARCH_INSTRUMENTS.value):
-            #This needs to look for multiple items and split them out
-            return InstrumentItem(json, client)
-
-        elif url == (AmeritradeURLs.GET_ACCOUNT.value, AmeritradeURLs.GET_LINKED_ACCOUNTS.value):
-            #This needs to look for multiple items and split them out
-            return AccountItem(json, client)
-
-        elif url == AmeritradeURLs.PRICE_HISTORY.value:
-            return PriceHistoryItem(json, client)
 
     def __repr__(self):
         # This isn't very useful as is
@@ -303,7 +274,6 @@ class AmeritradeItem():
             desc += "%s : %s, " % (k, v)
         desc += " >"
         return pp.pformat(desc)
-
 
 
 class TokenItem(AmeritradeItem):
@@ -323,9 +293,6 @@ class TokenItem(AmeritradeItem):
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
-        for k, v in self.json.items():
-            setattr(self, k, v)
-
         self.client.access_token = self.access_token
 
     def __repr__(self):
@@ -340,8 +307,6 @@ class QuoteItem(AmeritradeItem):
 
         self.symbol = symbol
 
-        for k, v in self.json.items():
-            setattr(self, k, v)
 
     #TODO Shouldn't have to repeat this on each subclass
     def __repr__(self):
@@ -389,16 +354,38 @@ class AmeritradeResponse():
         self.raw_response = raw_response
         self.client = client
 
-        self.item = None
+        self.items = None
         self.headers = raw_response.headers
 
         self.error = None
         if not self.raw_response.ok:
             raise RequestError(url=self.url, request=self.raw_response.request, response=self.raw_response)
 
-        # TODO This could be multiple `items` but will be named `item`
-        # Needs that refactor with AmeritradeItem factory in mind mentioned above
-        self.item = AmeritradeItem.parse(url, self.raw_response.json(), client)
+        self.items = self.parse(url, self.raw_response.json(), client)
+
+    def parse(self, url, json, client):
+        # check url to see which type of response we are expecting,
+        # hence which type of items to return
+
+        if url == AmeritradeURLs.TOKEN.value:
+            return TokenItem(json, client)
+
+        elif url == AmeritradeURLs.QUOTES.value:
+            quotes = list()
+            for symbol, quote_json in json.items():
+                quotes.append(QuoteItem(symbol, quote_json, client))
+            return quotes
+
+        elif url in (AmeritradeURLs.GET_INSTRUMENT.value, AmeritradeURLs.SEARCH_INSTRUMENTS.value):
+            #This needs to look for multiple items and split them out
+            return InstrumentItem(json, client)
+
+        elif url == (AmeritradeURLs.GET_ACCOUNT.value, AmeritradeURLs.GET_LINKED_ACCOUNTS.value):
+            #This needs to look for multiple items and split them out
+            return AccountItem(json, client)
+
+        elif url == AmeritradeURLs.PRICE_HISTORY.value:
+            return PriceHistoryItem(json, client)
 
 
 class AmeritradeClient(RestAPI):
@@ -462,8 +449,8 @@ class AmeritradeClient(RestAPI):
             response = requests.get(url, params, headers=headers, timeout=timeout)
 
         response = AmeritradeResponse(url, response, self)
-        self.logger.debug('GET response: %s' % pp.pformat(response.item))
-        return response.item
+        self.logger.debug('GET response: %s' % pp.pformat(response.items))
+        return response.items
 
 
     def post(self, url, params, headers=None, timeout=2):
@@ -479,8 +466,8 @@ class AmeritradeClient(RestAPI):
                                 )
 
         response = AmeritradeResponse(url, response, self)
-        self.logger.debug('POST response: %s' % pp.pformat(response.item))
-        return response.item
+        self.logger.debug('POST response: %s' % pp.pformat(response.items))
+        return response.items
 
 
 if __name__ == '__main__':
