@@ -4,6 +4,7 @@ import sys
 import logging
 from datetime import datetime
 from enum import Enum
+from functools import partial
 from json.decoder import JSONDecodeError
 
 import requests
@@ -42,6 +43,7 @@ class AmeritradeURLs(NoValue):
     ROOT = "https://api.tdameritrade.com/v1"
     TOKEN = ROOT + "/oauth2/token"
     GET_ACCOUNT = ROOT + "/accounts/%s"
+    GET_LINKED_ACCOUNTS = ROOT + "/accounts"
     QUOTES = ROOT + "/marketdata/quotes"
     PRICE_HISTORY = ROOT + "/marketdata/%s/pricehistory"
     SEARCH_INSTRUMENTS = ROOT + "/instruments"
@@ -51,12 +53,16 @@ class AmeritradeURLs(NoValue):
 class RestAPI(object):
     logger = logging.getLogger('ameritrade.RestAPI')
 
-
     ############################################################
     #### Authentication
     ############################################################
 
     def grant_refresh_token(self):
+        """
+            https://developer.tdameritrade.com/content/simple-auth-local-apps
+            https://developer.tdameritrade.com/authentication/apis/post/token-0
+        """
+
         params = {"grant_type":"refresh_token",
                   "refresh_token":self.refresh_token,
                   "client_id": self.client_id+"@AMER.OAUTHAP"}
@@ -73,20 +79,25 @@ class RestAPI(object):
     #### Quotes
     ############################################################
 
-    def get_quote(self, symbol):
+    def get_quotes(self, symbol):
+        """
+            https://developer.tdameritrade.com/quotes/apis/get/marketdata/quotes
+        """
+
         return self.get(AmeritradeURLs.QUOTES.value, {'symbol':symbol.upper()})
 
     ###########################################################
-    #### Prine History
+    #### Price History
     ############################################################
 
     def get_price_history(self, symbol, period_type=None, period=None, frequency_type=None, frequency=None,
                             end_date=None, start_date=None, need_extended_hours_data=True):
-
+        """
+            https://developer.tdameritrade.com/price-history/apis/get/marketdata/%7Bsymbol%7D/pricehistory
+        """
         params = dict()
 
         for k, v in locals().items():
-            ## Maybe TODO Make that a generator expresssion
 
             # BUG needExtendedHoursData when False will never be set
             if not v or k in ('self', 'symbol'):
@@ -143,7 +154,6 @@ class RestAPI(object):
             if all((params.get('startDate'), params.get('endDate'), params.get('period'))):
                 raise TypeError("If 'start_date' and 'end_date' are provided, 'period' should not be provided.")
 
-        print(params)
         return self.get(AmeritradeURLs.PRICE_HISTORY.value % symbol.upper(), params=params)
 
     ############################################################
@@ -151,19 +161,14 @@ class RestAPI(object):
     ############################################################
 
     def get_instrument(self, cusip):
+        """
+            https://developer.tdameritrade.com/instruments/apis/get/instruments/%7Bcusip%7D
+        """
         return self.get(AmeritradeURLs.GET_INSTRUMENT.value % cusip)
 
     def search_instruments(self, symbol, projection):
         """
-        symbol:  Value to pass to the search
-
-        projection:
-        ~~~~~~~~~~~
-        symbol-search: Retrieve instrument data of a specific symbol or cusip
-        symbol-regex: Retrieve instrument data for all symbols matching regex. Example: symbol=XYZ.* will return all symbols beginning with XYZ
-        desc-search: Retrieve instrument data for instruments whose description contains the word supplied. Example: symbol=FakeCompany will return all instruments with FakeCompany in the description.
-        desc-regex: Search description with full regex support. Example: symbol=XYZ.[A-C] returns all instruments whose descriptions contain a word beginning with XYZ followed by a character A through C.
-        fundamental: Returns fundamental data for a single instrument specified by exact symbol.
+            https://developer.tdameritrade.com/instruments/apis/get/instruments
         """
         return self.get(AmeritradeURLs.SEARCH_INSTRUMENTS.value, {'symbol':symbol, 'projection':projection})
 
@@ -174,8 +179,7 @@ class RestAPI(object):
 
     def get_account(self, account_id=None, fields=None):
         """
-        Balances displayed by default, additional fields can be added here by adding positions or orders
-        Example: fields=positions,orders
+            https://developer.tdameritrade.com/account-access/apis/get/accounts/%7BaccountId%7D-0
         """
         if not account_id:
             account_id = self.account_id
@@ -184,10 +188,21 @@ class RestAPI(object):
         return self.get(AmeritradeURLs.GET_ACCOUNT.value % account_id, fields)
 
 
+    def get_linked_accounts(self, fields=None):
+        """
+            https://developer.tdameritrade.com/account-access/apis/get/accounts-0
+        """
+        # NOTE: QUESTION:  How is it linked?  By the App?
+        if fields:
+            fields = {'fields': fields}
+        return self.get(AmeritradeURLs.GET_LINKED_ACCOUNTS.value, fields)
+
+
     ############################################################
     #### Orders
     ############################################################
 
+    #TODO
 
 
 class RequestError(Exception):
@@ -208,13 +223,14 @@ class RequestError(Exception):
 
         #TODO clean this up
         try:
-            self.message = "Got an error requesting %s\n\n%s\n\nERROR:\n%s\n\nRequest params:\n%s" % (url, self.response,  pp.pformat(self.response.json()), request)
+            self.message = "Got an error requesting %s\n\n%s\n\nERROR:\n%s\n\nRequest params:\n%s\n\nRequest headers:\n%s" % (url, self.response,  pp.pformat(self.response.json()), request, self.request.headers)
         except JSONDecodeError:
             self.message = "Got an error requesting %s\n\n%s\nERROR:\n%s\n\nRequest params:\n%s" % (url, self.response, pp.pformat(self.response.content), request)
 
         self.logger.exception(self.message)
         print()
         super().__init__(self, self.response.json())
+
 
 class AmeritradeFee():
     logger = logging.getLogger('ameritrade.Fee')
@@ -225,14 +241,24 @@ class AmeritradeFee():
     #Options exercises and assignments $19.99
     #Futures and options on futures $2.25 per contract Plus exchange and regulatory fees
 
+    # NOTE Some fees are variable, so we might want to make them
+    # configurable via the config file
+    # or perhaps they can be grabbed from the Account object
+
+
     ## Futures Options / contract
     ## comission = 2.25
     ## exchange_fee = 1.45
     ## NFA_fee = .02
-    
+
     # Not sure if this matters or not
     ## TAX_RATE = ??
 
+#
+# TODO This doesn't really make sense as a base class
+#      It's more like a factory.
+#      Consider a refactor so it makes more sense.
+#
 class AmeritradeItem():
     logger = logging.getLogger('ameritrade.Item')
 
@@ -240,28 +266,43 @@ class AmeritradeItem():
         self.json = json
         self.client = client
 
+        #for k, v in self.json.items():
+        #    setattr(self, k, v)
+
+
     @classmethod
     def parse(klass, url, json, client):
-        #check url to see which type of response we are expecting,
-        # hence which type of Item to return
+        # check url to see which type of response we are expecting,
+        # hence which type of items to return
+
         if url == AmeritradeURLs.TOKEN.value:
             return TokenItem(json, client)
+
         elif url == AmeritradeURLs.QUOTES.value:
-            return QuoteItem(json, client)
+            quotes = list()
+            for symbol, quote_json in json.items():
+                quotes.append(QuoteItem(symbol, quote_json, client))
+            return quotes
+
         elif url in (AmeritradeURLs.GET_INSTRUMENT.value, AmeritradeURLs.SEARCH_INSTRUMENTS.value):
+            #This needs to look for multiple items and split them out
             return InstrumentItem(json, client)
-        elif url == AmeritradeURLs.GET_ACCOUNT.value:
+
+        elif url == (AmeritradeURLs.GET_ACCOUNT.value, AmeritradeURLs.GET_LINKED_ACCOUNTS.value):
+            #This needs to look for multiple items and split them out
             return AccountItem(json, client)
+
         elif url == AmeritradeURLs.PRICE_HISTORY.value:
             return PriceHistoryItem(json, client)
 
     def __repr__(self):
+        # This isn't very useful as is
         desc = "< "
         for k, v in self.__dict__.items():
-            if not v: continue
+            if not v or k in ('json', 'client'): continue
             desc += "%s : %s, " % (k, v)
         desc += " >"
-        return desc
+        return pp.pformat(desc)
 
 
 
@@ -282,17 +323,10 @@ class TokenItem(AmeritradeItem):
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
-        #TODO Should these be dynamic?!?!
-        # THERE's going to be lots of classes and attributes
+        for k, v in self.json.items():
+            setattr(self, k, v)
 
-        #   YES
-        self.client.access_token = self.access_token = json.get('access_token')
-        self.refresh_token = json.get('refresh_token')
-        self.token_type = json.get('token_type')
-        self.expires_in = json.get('expires_in')
-        self.scope = json.get('scope')
-        self.refresh_token_expires_in = json.get('refresh_token_expires_in')
-
+        self.client.access_token = self.access_token
 
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
@@ -300,18 +334,19 @@ class TokenItem(AmeritradeItem):
 
 class QuoteItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.QuoteItem')
-    # Several different subclasses
-    # Mutual Fund
-    # Future
-    # Future Options
-    # Index
-    # Option
-    # Forex
-    # ETF
-    # Equity
 
-    #just start with equity for now
-    
+    def __init__(self, symbol, json, client):
+        AmeritradeItem.__init__(self, json, client)
+
+        self.symbol = symbol
+
+        for k, v in self.json.items():
+            setattr(self, k, v)
+
+    #TODO Shouldn't have to repeat this on each subclass
+    def __repr__(self):
+        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
+
 
 class InstrumentItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.InstrumentItem')
@@ -334,7 +369,8 @@ class AccountItem(AmeritradeItem):
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
-class AccountPriceHistoryItem(AmeritradeItem):
+
+class PriceHistoryItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.PriceHistoryItem')
 
     def __init__(self, json, client):
@@ -344,6 +380,7 @@ class AccountPriceHistoryItem(AmeritradeItem):
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
+
 class AmeritradeResponse():
     logger = logging.getLogger('ameritrade.Response')
 
@@ -352,29 +389,45 @@ class AmeritradeResponse():
         self.raw_response = raw_response
         self.client = client
 
+        self.item = None
         self.headers = raw_response.headers
 
         self.error = None
         if not self.raw_response.ok:
             raise RequestError(url=self.url, request=self.raw_response.request, response=self.raw_response)
 
-        response_item = AmeritradeItem.parse(url, self.raw_response.json(), client)
-        pp.pprint(self.raw_response.json())
+        # TODO This could be multiple `items` but will be named `item`
+        # Needs that refactor with AmeritradeItem factory in mind mentioned above
+        self.item = AmeritradeItem.parse(url, self.raw_response.json(), client)
 
 
 class AmeritradeClient(RestAPI):
     logger = logging.getLogger('ameritrade.Client')
 
     # do we even need this?
-    POST_HEADERS = {'Content-Type': 'application/json' }
-    GET_HEADERS = {}
+    HEADERS = {'Content-Type': 'application/json' }
 
     def __init__(self, client_id, account_id, redirect_url, refresh_token, access_token=None):
+        self._access_token = None
+
         self.client_id = client_id
         self.account_id = account_id
         self.redirect_url = redirect_url
         self.access_token = access_token
         self.refresh_token = refresh_token
+
+    @property
+    def access_token(self):
+        return self._access_token
+
+    @access_token.setter
+    def access_token(self, value):
+        self._access_token = value
+        if value:
+            self.HEADERS.update({'Authorization':'Bearer %s' % value})
+        #else:
+        #    del self.HEADERS['Authorization']
+        # NOTE if None is passed in, should we remove the value?
 
     @classmethod
     def from_config(klass, path):
@@ -397,42 +450,41 @@ class AmeritradeClient(RestAPI):
     def get(self, url, params=None, headers=None, timeout=2):
         self.logger.info('GET %s' % url)
 
-        if not headers:
-            headers = self.GET_HEADERS
-            if self.access_token:
-                headers.update({'Authorization':'Bearer %s' % self.access_token})
+        headers = self.HEADERS if not headers else headers.update(self.HEADERS)
 
-        response = requests.get(url,
-                                params,
-                                headers=headers
-                                )
+        response = requests.get(url, params, headers=headers, timeout=timeout)
+
+        # a 401 will trigger a request to refresh our token 
+        if response.status_code == 401:
+            self.logger.info('Refreshing token')
+            self.grant_refresh_token()
+            self.logger.info('Sending GET request again after refreshing token')
+            response = requests.get(url, params, headers=headers, timeout=timeout)
 
         response = AmeritradeResponse(url, response, self)
-        self.logger.debug('GET response: %s' % pp.pformat(response))
-        return response
-
+        self.logger.debug('GET response: %s' % pp.pformat(response.item))
+        return response.item
 
 
     def post(self, url, params, headers=None, timeout=2):
         self.logger.info('POST %s' % url)
 
-        if not headers:
-            headers = self.POST_HEADERS
-            if self.access_token:
-                headers.update({'Authorization':'Bearer %s' % self.access_token})
+        headers = self.HEADERS if not headers else headers.update(self.HEADERS)
 
+        # Do we need to check for 401 token expired errors on POST?
+        # Maybe only once we get to the access_token itself expiring
         response = requests.post(url,
                                  params,
                                  headers=headers
                                 )
 
         response = AmeritradeResponse(url, response, self)
-        self.logger.debug('POST response: %s' % pp.pformat(response))
-        return response
+        self.logger.debug('POST response: %s' % pp.pformat(response.item))
+        return response.item
 
 
 if __name__ == '__main__':
     client = AmeritradeClient.from_config('client.config')
     client.grant_refresh_token()
-    print(client.get_quote('PTN'))
+    print(client.get_quotes('PTN'))
 
