@@ -71,6 +71,18 @@ class RestAPI():
 
         return self.post(AmeritradeURLs.TOKEN.value, params, headers)
 
+    def grant_offline_token(self):
+        params = { 'grant_type': 'authorization_code',
+                   'access_type': 'offline',
+                   'code': self.access_token,
+                   'client_id': self.client_id+"@AMER.OAUTHAP",
+                   'redirect_uri': self.redirect_url}
+
+        headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
+
+        return self.post(AmeritradeURLs.TOKEN.value, params, headers)
+
+
     def grant_auth_code(self):
         pass
 
@@ -213,11 +225,11 @@ class RequestError(Exception):
         self.request = request
         self.response = response
 
-        #
-        # In case of no params
-        #
         if self.request.body:
-            request = pp.pformat(ujson.loads(self.request.body))
+            if self.request.headers['Content-Type'] == 'application/json':
+                request = pp.pformat(ujson.loads(self.request.body))
+            else:
+                request = self.request.body
         else:
             request = None
 
@@ -391,7 +403,6 @@ class AmeritradeResponse():
 class AmeritradeClient(RestAPI):
     logger = logging.getLogger('ameritrade.Client')
 
-    # do we even need this?
     HEADERS = {'Content-Type': 'application/json' }
 
     def __init__(self, client_id, account_id, redirect_url, refresh_token, access_token=None):
