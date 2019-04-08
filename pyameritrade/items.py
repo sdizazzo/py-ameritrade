@@ -77,8 +77,13 @@ class InstrumentItem(AmeritradeItem):
 class AccountItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.AccountItem')
 
-    def __init__(self, json, client):
+    def __init__(self, account_type, json, client):
         AmeritradeItem.__init__(self, json, client)
+        """
+            This is going to take much more work to objectify than I'm willing
+            to put in at the moment.
+        """
+        self.account_type = account_type
 
     #TODO Shouldn't have to repeat this on each subclass
     def __repr__(self):

@@ -37,6 +37,11 @@ class Client(RestAPI):
         self.access_token = access_token
         self.refresh_token = refresh_token
 
+        self.session = requests.Session()
+
+        # NOTE Any better to store headers in the session?
+        #self.session.headers = {'Content-Type': 'application/json' }
+
     @property
     def access_token(self):
         return self._access_token
@@ -46,8 +51,8 @@ class Client(RestAPI):
         self._access_token = value
         if value:
             self.HEADERS.update({'Authorization':'Bearer %s' % value})
-        #else:
-        #    del self.HEADERS['Authorization']
+        else:
+            self.HEADERS.update({'Authorization': None})
         # NOTE if None is passed in, should we remove the value?
 
     @classmethod
@@ -73,14 +78,14 @@ class Client(RestAPI):
 
         headers = self.HEADERS if not headers else headers.update(self.HEADERS)
 
-        response = requests.get(url, params, headers=headers, timeout=timeout, **kwargs)
+        response = self.session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
 
         # a 401 will trigger a request to refresh our token 
         if response.status_code == 401:
             self.logger.info('Refreshing token')
             self.grant_refresh_token()
             self.logger.info('Sending GET request again after refreshing token')
-            response = requests.get(url, params, headers=headers, timeout=timeout, **kwargs)
+            response = self.session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
 
         response = Response(url, response, self)
         self.logger.debug('GET response: %s' % pp.pformat(response.items))
@@ -94,8 +99,8 @@ class Client(RestAPI):
 
         # Do we need to check for 401 token expired errors on POST?
         # Maybe only once we get to the access_token itself expiring
-        response = requests.post(url,
-                                 params,
+        response = self.session.post(url,
+                                 data=params,
                                  headers=headers,
                                  **kwargs
                                 )

@@ -25,10 +25,10 @@ class Response():
 
         self.items = self.parse(url, self.raw_response.json(), client)
 
+
     def parse(self, url, json, client):
         # check url to see which type of response we are expecting,
         # hence which type of items to return
-
         if url == URLs.TOKEN.value:
             return TokenItem(json, client)
 
@@ -45,9 +45,17 @@ class Response():
             #This needs to look for multiple items and split them out
             return InstrumentItem(json, client)
 
-        elif url == (URLs.GET_ACCOUNT.value, URLs.GET_LINKED_ACCOUNTS.value):
-            #This needs to look for multiple items and split them out
-            return AccountItem(json, client)
+        #it's ugly, but for now.  Maybe a regular expression later on
+        elif url.startswith(URLs.GET_ACCOUNT.value.strip('%s')):
+            account_type = next(iter(json))
+            return AccountItem(account_type, json[account_type], client)
+
+        elif url == URLs.GET_LINKED_ACCOUNTS.value:
+            accounts = list()
+            for all_accounts_json in json:
+                for account_type, account_json in all_accounts_json.items():
+                    accounts.append(AccountItem(account_type, account_json, client))
+            return accounts
 
         elif url == URLs.PRICE_HISTORY.value:
             return PriceHistoryItem(json, client)
