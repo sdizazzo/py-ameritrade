@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import logging
 
 from pyameritrade.urls import URLs
@@ -29,33 +30,39 @@ class Response():
     def parse(self, url, json, client):
         # check url to see which type of response we are expecting,
         # hence which type of items to return
-        if url == URLs.TOKEN.value:
+        if URLs.match(URLs.TOKEN, url):
             return TokenItem(json, client)
 
-        elif url == URLs.AUTH_CODE.value:
+        elif URLs.match(URLs.AUTH_CODE, url):
             print(raw_response.text)
 
-        elif url == URLs.QUOTES.value:
+        elif URLs.match(URLs.QUOTES, url):
             quotes = list()
             for symbol, quote_json in json.items():
                 quotes.append(QuoteItem(symbol, quote_json, client))
             return quotes
 
-        elif url in (URLs.GET_INSTRUMENT.value, URLs.SEARCH_INSTRUMENTS.value):
-            #This needs to look for multiple items and split them out
-            return InstrumentItem(json, client)
+        elif URLs.match(URLs.GET_INSTRUMENT, url):
+            #Assuming it's safe to just grab the first item...
+            return InstrumentItem(json[0], client)
 
-        #it's ugly, but for now.  Maybe a regular expression later on
-        elif url.startswith(URLs.GET_ACCOUNT.value.strip('%s')):
+        elif URLs.match(URLs.SEARCH_INSTRUMENTS, url):
+            instruments = list()
+            for symbol, instrument_json in json.items():
+                instruments.append(InstrumentItem(instrument_json, client))
+            return instruments
+
+        elif URLs.match(URLs.GET_ACCOUNT, url):
             account_type = next(iter(json))
             return AccountItem(account_type, json[account_type], client)
 
-        elif url == URLs.GET_LINKED_ACCOUNTS.value:
+        elif URLs.match(URLs.GET_LINKED_ACCOUNTS, url):
             accounts = list()
             for all_accounts_json in json:
                 for account_type, account_json in all_accounts_json.items():
                     accounts.append(AccountItem(account_type, account_json, client))
             return accounts
 
-        elif url == URLs.PRICE_HISTORY.value:
+        elif URLs.match(URLs.PRICE_HISTORY, url):
             return PriceHistoryItem(json, client)
+

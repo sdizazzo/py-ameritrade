@@ -6,12 +6,9 @@ import logging
 import requests
 import ujson
 
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
-
 from pyameritrade.rest_api import RestAPI
 from pyameritrade.response import Response
-
+from pyameritrade.utils import pp
 
 ###############################################
 #

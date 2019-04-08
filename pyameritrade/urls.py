@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import re
 from enum import Enum
+
 
 class NoValue(Enum):
     def __repr__(self):
@@ -16,3 +18,7 @@ class URLs(NoValue):
     PRICE_HISTORY = ROOT + "/marketdata/%s/pricehistory"
     SEARCH_INSTRUMENTS = ROOT + "/instruments"
     GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
+
+    @classmethod
+    def match(klass, URL, url):
+        return re.match(URL.value.replace('%s','.+'), url)

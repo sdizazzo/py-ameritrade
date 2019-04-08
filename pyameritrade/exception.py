@@ -4,8 +4,7 @@ import logging
 import ujson
 from json.decoder import JSONDecodeError
 
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
+from pyameritrade.utils import pp
 
 class RequestError(Exception):
     logger = logging.getLogger('ameritrade.RequestError')

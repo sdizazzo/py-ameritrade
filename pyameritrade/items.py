@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import logging
+from datetime import datetime
 
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
+from pyameritrade.utils import pp
 
 class AmeritradeItem():
     logger = logging.getLogger('ameritrade.Item')
@@ -26,7 +26,12 @@ class AmeritradeItem():
         return pp.pformat(desc)
 
 
-class TokenItem(AmeritradeItem):
+class ReprMix():
+    def __repr__(self):
+        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
+
+
+class TokenItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.TokenItem')
 
     """
@@ -45,11 +50,8 @@ class TokenItem(AmeritradeItem):
 
         self.client.access_token = self.access_token
 
-    def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
-
-class QuoteItem(AmeritradeItem):
+class QuoteItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.QuoteItem')
 
     def __init__(self, symbol, json, client):
@@ -58,23 +60,14 @@ class QuoteItem(AmeritradeItem):
         self.symbol = symbol
 
 
-    #TODO Shouldn't have to repeat this on each subclass
-    def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
-
-
-class InstrumentItem(AmeritradeItem):
+class InstrumentItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.InstrumentItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
-    #TODO Shouldn't have to repeat this on each subclass
-    def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
-
-class AccountItem(AmeritradeItem):
+class AccountItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.AccountItem')
 
     def __init__(self, account_type, json, client):
@@ -85,20 +78,13 @@ class AccountItem(AmeritradeItem):
         """
         self.account_type = account_type
 
-    #TODO Shouldn't have to repeat this on each subclass
-    def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
 
-
-class PriceHistoryItem(AmeritradeItem):
+class PriceHistoryItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.PriceHistoryItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
-    #TODO Shouldn't have to repeat this on each subclass
-    def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
-
-
+        for candle in self.candles:
+            candle['datetime'] = datetime.utcfromtimestamp(candle['datetime']/1000.0)
 
