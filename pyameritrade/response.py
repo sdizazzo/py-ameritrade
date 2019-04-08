@@ -2,8 +2,8 @@
 
 import logging
 
-from urls import URLs
-from items import TokenItem, QuoteItem, InstrumentItem, AccountItem, PriceHistoryItem
+from pyameritrade.urls import URLs
+from pyameritrade.items import TokenItem, QuoteItem, InstrumentItem, AccountItem, PriceHistoryItem
 
 from pyameritrade.exception import RequestError
 
