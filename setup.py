@@ -9,7 +9,5 @@ setup(name='pyameritrade',
       version='1.0',
       author='Sean DiZazzo',
       author_email='sean.dizazzo@gmail.com',
-      py_modules=['client', 'exception', 'fee',
-                  'items', 'response', 'rest_api',
-                  'urls'],
+      packages=['pyameritrade'],
       )
