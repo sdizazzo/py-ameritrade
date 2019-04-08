@@ -9,8 +9,8 @@ import ujson
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-from rest_api import RestAPI
-from response import Response
+from pyameritrade.rest_api import RestAPI
+from pyameritrade.response import Response
 
 
 ###############################################

@@ -5,7 +5,7 @@ import logging
 from urls import URLs
 from items import TokenItem, QuoteItem, InstrumentItem, AccountItem, PriceHistoryItem
 
-from exception import RequestError
+from pyameritrade.exception import RequestError
 
 
 class Response():

@@ -1,5 +1,6 @@
 #!/usr/bin/env/python
 
+import os
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 import ssl
@@ -12,6 +13,7 @@ from pyameritrade.client import Client
 CLIENT_ID = "**********@AMER.OAUTHAP"
 REDIRECT_URL = "https://127.0.0.1"
 
+etc_dir = os.path.join(os.path.dirname(__file__), 'etc')
 
 class Handler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -23,6 +25,7 @@ class Handler(BaseHTTPRequestHandler):
         self._set_headers()
         path, _, query_string = self.path.partition('?')
         if path == '/favicon.ico': return
+
         code = parse_qs(query_string)['code']
 
         self.am_client = Client(CLIENT_ID, None, REDIRECT_URL, None, access_token=code)
@@ -33,7 +36,7 @@ class Handler(BaseHTTPRequestHandler):
 httpd = HTTPServer(('127.0.0.1', 443), Handler)
 
 httpd.socket = ssl.wrap_socket (httpd.socket,
-        keyfile='etc/key.pem',
-        certfile='etc/certificate.pem', server_side=True)
+        keyfile=os.path.join(etc_dir, 'key.pem'),
+        certfile=os.path.join(etc_dir, 'certificate.pem'), server_side=True)
 
 httpd.serve_forever()

@@ -4,6 +4,9 @@ import logging
 import ujson
 from json.decoder import JSONDecodeError
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 class RequestError(Exception):
     logger = logging.getLogger('ameritrade.RequestError')
 

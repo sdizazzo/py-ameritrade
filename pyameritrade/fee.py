@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import logging
+
 class AmeritradeFee():
     logger = logging.getLogger('ameritrade.Fee')
     #https://www.tdameritrade.com/pricing.page

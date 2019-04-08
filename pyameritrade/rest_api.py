@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from urls import URLs
+from pyameritrade.urls import URLs
 
 #CONSTANTS
 EPOCH = datetime.utcfromtimestamp(0)
@@ -54,7 +54,10 @@ class RestAPI():
         return self.post(URLs.TOKEN.value, params, headers)
 
 
-    def grant_auth_code(self):
+    def grant_auth_code(self, cert_dir):
+        #
+        # IN PROGRESS
+        #
         self.get(URLs.AUTH_CODE.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'),
                  cert=('etc/certificate.pem', 'etc/key.pem')
                 )
