@@ -7,7 +7,7 @@ import ssl
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-from ameritrade_client import AmeritradeClient
+from pyameritrade.client import Client
 
 CLIENT_ID = "**********@AMER.OAUTHAP"
 REDIRECT_URL = "https://127.0.0.1"
@@ -25,7 +25,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/favicon.ico': return
         code = parse_qs(query_string)['code']
 
-        self.am_client = AmeritradeClient(CLIENT_ID, None, REDIRECT_URL, None, access_token=code)
+        self.am_client = Client(CLIENT_ID, None, REDIRECT_URL, None, access_token=code)
         tokens = self.am_client.grant_offline_token()
         self.wfile.write(pp.pformat(tokens.json).encode('utf-8'))
 

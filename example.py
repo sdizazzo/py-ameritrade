@@ -6,9 +6,8 @@ from datetime import datetime, timedelta
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-from client import Client
+from pyameritrade.client import Client
 
-import urllib.parse
 
 if __name__ == '__main__':
     logger = logging.getLogger('ameritrade')
@@ -29,5 +28,5 @@ if __name__ == '__main__':
     #resp = client.get_instrument('OGM19')
     #resp = client.search_instruments(r'/G.*', 'symbol-regex')
     account = am_client.get_account(fields='positions')
-    #resp = client.get_price_history('ptn', frequency='1', start_date=datetime.now()-timedelta(days=30), end_date=datetime.now()-timedelta(days=20))
-    #resp = client.get_price_history('ptn', period_type='day', frequency_type='minute', frequency=1)
+    #price_history = client.get_price_history('ptn', frequency='1', start_date=datetime.now()-timedelta(days=30), end_date=datetime.now()-timedelta(days=20))
+    #price_history = client.get_price_history('ptn', period_type='day', frequency_type='minute', frequency=1)
