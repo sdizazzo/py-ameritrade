@@ -4,7 +4,8 @@ import re
 import logging
 
 from pyameritrade.urls import URLs
-from pyameritrade.items import TokenItem, QuoteItem, InstrumentItem, AccountItem, PriceHistoryItem
+from pyameritrade.items import TokenItem, QuoteItem, InstrumentItem,\
+                               AccountItem, PriceHistoryItem, MoverItem
 
 from pyameritrade.exception import RequestError
 
@@ -44,7 +45,7 @@ class Response():
 
         elif URLs.match(URLs.GET_INSTRUMENT, url):
             #Assuming it's safe to just grab the first item...
-            return InstrumentItem(json[0], client)
+            return InstrumentItem(next(iter(json)), client)
 
         elif URLs.match(URLs.SEARCH_INSTRUMENTS, url):
             instruments = list()
@@ -66,3 +67,8 @@ class Response():
         elif URLs.match(URLs.PRICE_HISTORY, url):
             return PriceHistoryItem(json, client)
 
+        elif URLs.match(URLs.GET_MOVERS, url):
+            movers = list()
+            for mover_json in json:
+                movers.append(MoverItem(mover_json, client))
+            return movers

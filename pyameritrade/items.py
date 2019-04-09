@@ -78,6 +78,11 @@ class AccountItem(AmeritradeItem, ReprMix):
         """
         self.account_type = account_type
 
+class MoverItem(AmeritradeItem, ReprMix):
+    logger = logging.getLogger('ameritrade.MoverItem')
+
+    def __init__(self, json, client):
+        AmeritradeItem.__init__(self, json, client)
 
 class PriceHistoryItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.PriceHistoryItem')
@@ -87,4 +92,5 @@ class PriceHistoryItem(AmeritradeItem, ReprMix):
 
         for candle in self.candles:
             candle['datetime'] = datetime.utcfromtimestamp(candle['datetime']/1000.0)
+
 

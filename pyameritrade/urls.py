@@ -18,6 +18,7 @@ class URLs(NoValue):
     PRICE_HISTORY = ROOT + "/marketdata/%s/pricehistory"
     SEARCH_INSTRUMENTS = ROOT + "/instruments"
     GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
+    GET_MOVERS = ROOT + "/marketdata/%s/movers"
 
     @classmethod
     def match(klass, URL, url):

@@ -20,6 +20,7 @@ VALID_FREQUENCY_TYPES = {'minute':  (('day',),                 (1,5,10,15,30)),
                          'monthly': (('monthly'),              (1,))
                         }
 
+VALID_INDICIES = ('$COMPX', '$DJI', '$SPX.X')
 
 class RestAPI():
     logger = logging.getLogger('ameritrade.RestAPI')
@@ -54,12 +55,12 @@ class RestAPI():
         return self.post(URLs.TOKEN.value, params, headers)
 
 
-    def grant_auth_code(self, cert_dir):
+    def grant_auth_code(self):
         #
         # IN PROGRESS
         #
         self.get(URLs.AUTH_CODE.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'),
-                 cert=('etc/certificate.pem', 'etc/key.pem')
+                 verify=False
                 )
 
     ############################################################
@@ -183,6 +184,19 @@ class RestAPI():
         if fields:
             fields = {'fields': fields}
         return self.get(URLs.GET_LINKED_ACCOUNTS.value, fields)
+
+    ############################################################
+    #### Movers
+    ############################################################
+
+    def get_movers(self, index, direction=None, change=None):
+        if not index.upper() in VALID_INDICIES:
+            raise TypeError("Invalid index '%s'. Must be one of %s" % ( index, VALID_INDICIES))
+        if direction and not direction in ('up', 'down'):
+            raise TypeError("Invalid direction '%s', Must be one of ('up', 'down')" % direction)
+        if change and not change in ('value', 'percent'):
+            raise TypeError("Invalid change '%s', Must be one of ('value', 'percent')" % change)
+        return self.get(URLs.GET_MOVERS.value % index.upper(), params={'direction':direction, 'change':change})
 
 
     ############################################################
