@@ -59,8 +59,10 @@ class RestAPI():
         #
         # IN PROGRESS
         #
-        self.get(URLs.AUTH_CODE.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'),
-                 verify=False
+        return self.get(URLs.AUTH_CODE.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'),
+                 timeout=10,
+                 headers={'Content-Type': 'text/html'},
+                 verify=self.server_cert
                 )
 
     ############################################################
@@ -79,7 +81,7 @@ class RestAPI():
     ############################################################
 
     def get_price_history(self, symbol, period_type=None, period=None, frequency_type=None, frequency=None,
-                            end_date=None, start_date=None, need_extended_hours_data=True):
+                                end_date=None, start_date=None, need_extended_hours_data=True):
         """
             https://developer.tdameritrade.com/price-history/apis/get/marketdata/%7Bsymbol%7D/pricehistory
         """
@@ -154,6 +156,7 @@ class RestAPI():
         """
         return self.get(URLs.GET_INSTRUMENT.value % cusip)
 
+
     def search_instruments(self, symbol, projection):
         """
             https://developer.tdameritrade.com/instruments/apis/get/instruments
@@ -169,10 +172,11 @@ class RestAPI():
         """
             https://developer.tdameritrade.com/account-access/apis/get/accounts/%7BaccountId%7D-0
         """
-        if not account_id:
-            account_id = self.account_id
-        if fields:
-            fields = {'fields': fields}
+
+        account_id = account_id or self.account_id
+
+        fields = {'fields': fields} if fields else None
+
         return self.get(URLs.GET_ACCOUNT.value % account_id, fields)
 
 
@@ -180,9 +184,8 @@ class RestAPI():
         """
             https://developer.tdameritrade.com/account-access/apis/get/accounts-0
         """
-        # NOTE: QUESTION:  How is it linked?  By the App?
-        if fields:
-            fields = {'fields': fields}
+        fields = {'fields': fields} if fields else None
+
         return self.get(URLs.GET_LINKED_ACCOUNTS.value, fields)
 
     ############################################################

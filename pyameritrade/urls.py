@@ -22,4 +22,6 @@ class URLs(NoValue):
 
     @classmethod
     def match(klass, URL, url):
-        return re.match(URL.value.replace('%s','.+'), url)
+                                                        #There's probably a more 
+                                                        #general way to do this
+        return re.match(URL.value.replace('%s','.+').replace('?', r'\?'), url)

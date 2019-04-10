@@ -1,6 +1,7 @@
 #!/usr/bin/env/python
 
 import os
+import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 import ssl
@@ -15,6 +16,11 @@ REDIRECT_URL = "https://127.0.0.1"
 
 etc_dir = os.path.join(os.path.dirname(__file__), 'etc')
 
+logging.basicConfig(level=logging.DEBUG,
+                    handlers=[logging.FileHandler("/Users/sean/Desktop/SUPERVISOR/log/token_server.log")],
+                    format='%(asctime)s %(message)s',
+                    )
+
 class Handler(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(200)
@@ -22,6 +28,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        logging.info("GET %s" % self.path)
+
         self._set_headers()
         path, _, query_string = self.path.partition('?')
         if path == '/favicon.ico': return

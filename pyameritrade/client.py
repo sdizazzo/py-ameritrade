@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import sys, os
 import logging
 
 import requests
@@ -25,14 +25,18 @@ class Client(RestAPI):
 
     HEADERS = {'Content-Type': 'application/json' }
 
-    def __init__(self, client_id, account_id, redirect_url, refresh_token, access_token=None):
+    def __init__(self, client_id, account_id, redirect_url, refresh_token, server_cert=None, access_token=None):
         self._access_token = None
 
+        # TODO Figure out which of these can be mandatory or optional
+        # I guess it depends on if we can get the access token working
+        # automatically or not
         self.client_id = client_id
         self.account_id = account_id
         self.redirect_url = redirect_url
         self.access_token = access_token
         self.refresh_token = refresh_token
+        self.server_cert = os.path.abspath(server_cert)
 
         self.session = requests.Session()
 
@@ -67,14 +71,18 @@ class Client(RestAPI):
         account_id = client['account_id'] # NOTE this doesn't really need to be mandatory
         redirect_url = client['redirect_url']
         refresh_token = client['refresh_token']
+        server_cert = client['server_cert']
 
-        return Client(client_id, account_id, redirect_url, refresh_token)
+        return Client(client_id, account_id, redirect_url, refresh_token, server_cert=server_cert)
+
 
     def get(self, url, params=None, headers=None, timeout=2, **kwargs):
         self.logger.info('GET %s' % url)
 
+        # This doesnt work how I'm expecting.
+        # better to use the session object
         headers = self.HEADERS if not headers else headers.update(self.HEADERS)
-
+        print("HEADERS: %s " % headers)
         response = self.session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
 
         # a 401 will trigger a request to refresh our token 

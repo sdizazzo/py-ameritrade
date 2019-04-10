@@ -34,17 +34,6 @@ class ReprMix():
 class TokenItem(AmeritradeItem, ReprMix):
     logger = logging.getLogger('ameritrade.TokenItem')
 
-    """
-    {
-        "access_token": "string",
-        "refresh_token": "string",
-        "token_type": "string",
-        "expires_in": 0,
-        "scope": "string",
-        "refresh_token_expires_in": 0
-    }
-    """
-
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
@@ -56,7 +45,7 @@ class QuoteItem(AmeritradeItem, ReprMix):
 
     def __init__(self, symbol, json, client):
         AmeritradeItem.__init__(self, json, client)
-
+        #NOTE Am I sure we even need to manually set the symbol like this?
         self.symbol = symbol
 
 
