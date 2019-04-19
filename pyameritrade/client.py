@@ -82,7 +82,6 @@ class Client(RestAPI):
         # This doesnt work how I'm expecting.
         # better to use the session object
         headers = self.HEADERS if not headers else headers.update(self.HEADERS)
-        print("HEADERS: %s " % headers)
         response = self.session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
 
         # a 401 will trigger a request to refresh our token 

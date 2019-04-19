@@ -17,7 +17,7 @@ REDIRECT_URL = "https://127.0.0.1"
 etc_dir = os.path.join(os.path.dirname(__file__), 'etc')
 
 logging.basicConfig(level=logging.DEBUG,
-                    handlers=[logging.FileHandler("/Users/sean/Desktop/SUPERVISOR/log/token_server.log")],
+                    handlers=[logging.FileHandler("token_server.log")],
                     format='%(asctime)s %(message)s',
                     )
 

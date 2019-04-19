@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 from pyameritrade.client import Client
 from pyameritrade.utils import pp, logger
 
+
 if __name__ == '__main__':
     #logger.setLevel(logging.DEBUG)
 
     am_client = Client.from_config('client.config')
-
     #am_client.grant_auth_code()
     movers = am_client.get_movers("$compx", direction='up', change='percent')
     for m in movers:
@@ -32,9 +32,16 @@ if __name__ == '__main__':
     pp.pprint(account.json)
 
     accounts = am_client.get_linked_accounts(fields='positions')
-    print(accounts)
+    #print(accounts)
 
-    price_history = am_client.get_price_history('ptn', frequency='1', start_date=datetime.now()-timedelta(days=30), end_date=datetime.now()-timedelta(days=20))
-    #price_history = am_client.get_price_history('ptn', period_type='day', frequency_type='minute', frequency=1)
+    #price_history = am_client.get_price_history('AAPL', period_type='year', period=20, frequency_type='daily')
+    #price_history.generate_graph(trace='line')
+
+    price_history = am_client.get_price_history('aapl', period_type='day', period=1, frequency_type='minute', frequency=5)
+
+    #NOTE In order to genereate a graph, you must create an account with plot.ly and register an api key
+    # see plotly_test.ipynb
+    #price_history.generate_graph(trace='candlestick', filename='AAPL_daily')
+
     for candle in price_history.candles:
         print(candle)
