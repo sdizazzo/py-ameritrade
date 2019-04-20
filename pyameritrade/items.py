@@ -6,7 +6,7 @@ from datetime import datetime
 from pyameritrade.utils import pp
 
 import ujson
-import pandas as pd
+import pandas
 
 from plotly import tools
 import plotly.plotly
@@ -81,17 +81,24 @@ class MoverItem(AmeritradeItem, ReprMix):
         AmeritradeItem.__init__(self, json, client)
 
 
-class PriceHistoryItem(AmeritradeItem, ReprMix):
+class PriceHistoryItem(AmeritradeItem):
     logger = logging.getLogger('ameritrade.PriceHistoryItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
-        for candle in self.candles:
-            candle['datetime'] = datetime.utcfromtimestamp(candle['datetime']/1000.0)
+        self.candles = pandas.DataFrame(self.json['candles'])
+        for i, candle in self.candles.iterrows():
+            self.candles.at[i, 'datetime'] = datetime.utcfromtimestamp(candle['datetime']/1000.0)
+
+    def __repr__(self):
+        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + " Symbol: %s\nCandles:\n%s" % (self.symbol, self.candles)
 
 
-    def generate_graph(self, trace='line', averages=None, volume=True, filename=None):
+
+    def generate_graph(self, trace='line', volume=True, filename=None,
+                             simple_averages=None, exp_averages=None):
+
         # I'm not sure this sould be a method on this class, but on a 
         # second layer.  I'm not sure I will ever get to that much detail with this
         # library, though.  It probably should just be an example and left to the
@@ -100,15 +107,11 @@ class PriceHistoryItem(AmeritradeItem, ReprMix):
         # I'm getting a little lazier now knowing I can't trade gold with this the
         # way I wanted to.
 
-        # seems like pandas should be the base format of the library
-        # very versatile for financial data
-        data = pd.read_json(ujson.dumps(self.json['candles']))
-
-        opens = data['open']
-        closes = data['close']
-        highs = data['high']
-        lows = data['low']
-        datetimes = data['datetime']
+        opens = self.candles['open']
+        closes = self.candles['close']
+        highs = self.candles['high']
+        lows = self.candles['low']
+        datetimes = self.candles['datetime']
 
         if trace.lower() == 'line':
             main_trace = plotly.graph_objs.Scatter(x=datetimes,
@@ -143,18 +146,31 @@ class PriceHistoryItem(AmeritradeItem, ReprMix):
 
         if volume:
             volume_trace = plotly.graph_objs.Bar(x=datetimes,
-                                                 y=data['volume'],
+                                                 y=self.candles['volume'],
                                                  name='Volume',
                                                  yaxis='y2')
             fig.append_trace(volume_trace, 2, 1)
 
-        if averages:
-            for average in averages:
+        #Clearly this is getting repetitive
+        if simple_averages:
+            for average in simple_averages:
+                # TODO
+                # Since we are calculating these, we should probably add them
+                # to the candles dataframe so they could be used again if needed
+                #
                 sma = closes.rolling(average).mean()
                 sma_trace = plotly.graph_objs.Scatter(x=datetimes,
                                                       y=sma,
                                                       name='%s day SMA' % average)
                 fig.append_trace(sma_trace, 1, 1)
+
+        if exp_averages:
+            for average in exp_averages:
+                ema = closes.ewm(span=average).mean()
+                ema_trace = plotly.graph_objs.Scatter(x=datetimes,
+                                                      y=ema,
+                                                      name='%s day EMA' % average)
+                fig.append_trace(ema_trace, 1, 1)
 
 
         fig['layout'].update(title=self.symbol)

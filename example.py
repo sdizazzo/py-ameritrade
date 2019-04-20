@@ -34,14 +34,12 @@ if __name__ == '__main__':
     accounts = am_client.get_linked_accounts(fields='positions')
     #print(accounts)
 
-    #price_history = am_client.get_price_history('AAPL', period_type='year', period=20, frequency_type='daily')
-    #price_history.generate_graph(trace='line')
+    #NOTE In order to generate a graph, you must create an account with plot.ly and register an api key
+    # see plotly_test.ipynb
+    price_history = am_client.get_price_history('$DJI', period_type='year', period=20, frequency_type='daily')
+    print(price_history)
+    price_history.generate_graph(trace='line', simple_averages=(50, 200), exp_averages=(50,))
 
     price_history = am_client.get_price_history('aapl', period_type='day', period=1, frequency_type='minute', frequency=5)
+    price_history.generate_graph(trace='candlestick', filename='AAPL_daily')
 
-    #NOTE In order to genereate a graph, you must create an account with plot.ly and register an api key
-    # see plotly_test.ipynb
-    #price_history.generate_graph(trace='candlestick', filename='AAPL_daily')
-
-    for candle in price_history.candles:
-        print(candle)
