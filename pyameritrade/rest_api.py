@@ -23,7 +23,7 @@ VALID_FREQUENCY_TYPES = {'minute':  (('day',),                 (1,5,10,15,30)),
 VALID_INDICIES = ('$COMPX', '$DJI', '$SPX.X')
 
 class RestAPI():
-    logger = logging.getLogger('ameritrade.RestAPI')
+    logger = logging.getLogger('pyameritrade.RestAPI')
 
     ############################################################
     #### Authentication
@@ -34,19 +34,25 @@ class RestAPI():
             https://developer.tdameritrade.com/content/simple-auth-local-apps
             https://developer.tdameritrade.com/authentication/apis/post/token-0
         """
+        if not self.auth_token:
+            raise AttributeError("The client does not appear to be authenticated.")
 
         params = {"grant_type":"refresh_token",
-                  "refresh_token":self.refresh_token,
+                  "refresh_token":self.auth_token.refresh_token,
                   "client_id": self.client_id+"@AMER.OAUTHAP"}
 
         headers = {'Content-Type':'application/x-www-form-urlencoded'}
 
-        return self.post(URLs.TOKEN.value, params, headers)
+        refresh_token = self.post(URLs.TOKEN.value, params, headers)
+        self.HEADERS.update({'Authorization':'Bearer %s' % refresh_token.access_token})
+        return refresh_token
+
 
     def grant_offline_token(self):
+        # Used by the token server
         params = { 'grant_type': 'authorization_code',
                    'access_type': 'offline',
-                   'code': self.access_token,
+                   'code': self.access_code,
                    'client_id': self.client_id+"@AMER.OAUTHAP",
                    'redirect_uri': self.redirect_url}
 
@@ -54,16 +60,10 @@ class RestAPI():
 
         return self.post(URLs.TOKEN.value, params, headers)
 
+    def get_auth_token(self):
+        return self.get(self.redirect_url+ URLs.AUTH_TOKEN.value,
+                        headers=self.HEADERS, verify=self.server_cert)
 
-    def grant_auth_code(self):
-        #
-        # IN PROGRESS
-        #
-        return self.get(URLs.AUTH_CODE.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'),
-                 timeout=10,
-                 headers={'Content-Type': 'text/html'},
-                 verify=self.server_cert
-                )
 
     ############################################################
     #### Quotes
@@ -168,12 +168,10 @@ class RestAPI():
     #### Accounts
     ############################################################
 
-    def get_account(self, account_id=None, fields=None):
+    def get_account(self, account_id, fields=None):
         """
             https://developer.tdameritrade.com/account-access/apis/get/accounts/%7BaccountId%7D-0
         """
-
-        account_id = account_id or self.account_id
 
         fields = {'fields': fields} if fields else None
 

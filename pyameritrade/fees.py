@@ -2,8 +2,8 @@
 
 import logging
 
-class AmeritradeFee():
-    logger = logging.getLogger('ameritrade.Fee')
+class AmeritradeFees():
+    logger = logging.getLogger('pyameritrade.Fees')
     #https://www.tdameritrade.com/pricing.page
     #Stock commision $6.95
     #ETF commision $0 or $6.95

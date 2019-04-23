@@ -12,7 +12,8 @@ if __name__ == '__main__':
     #logger.setLevel(logging.DEBUG)
 
     am_client = Client.from_config('client.config')
-    #am_client.grant_auth_code()
+    am_client.authenticate()
+
     movers = am_client.get_movers("$compx", direction='up', change='percent')
     for m in movers:
         print(m)
@@ -28,11 +29,8 @@ if __name__ == '__main__':
     for instrument in instruments:
         print(instrument)
 
-    account = am_client.get_account(fields='positions')
-    pp.pprint(account.json)
-
     accounts = am_client.get_linked_accounts(fields='positions')
-    #print(accounts)
+    pp.pprint(accounts)
 
     #NOTE In order to generate a graph, you must create an account with plot.ly and register an api key
     # see plotly_test.ipynb

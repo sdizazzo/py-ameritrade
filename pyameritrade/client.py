@@ -2,13 +2,18 @@
 
 import sys, os
 import logging
+import webbrowser
 
 import requests
 import ujson
 
 from pyameritrade.rest_api import RestAPI
 from pyameritrade.response import Response
+from pyameritrade.items import TokenItem
+from pyameritrade.urls import URLs
+from pyameritrade.exception import RequestError
 from pyameritrade.utils import pp
+
 
 ###############################################
 #
@@ -21,40 +26,38 @@ from pyameritrade.utils import pp
 
 
 class Client(RestAPI):
-    logger = logging.getLogger('ameritrade.Client')
+    logger = logging.getLogger('pyameritrade.Client')
 
     HEADERS = {'Content-Type': 'application/json' }
 
-    def __init__(self, client_id, account_id, redirect_url, refresh_token, server_cert=None, access_token=None):
-        self._access_token = None
-
-        # TODO Figure out which of these can be mandatory or optional
-        # I guess it depends on if we can get the access token working
-        # automatically or not
+    def __init__(self, client_id, redirect_url, server_cert=False, access_code=None):
         self.client_id = client_id
-        self.account_id = account_id
         self.redirect_url = redirect_url
-        self.access_token = access_token
-        self.refresh_token = refresh_token
-        self.server_cert = os.path.abspath(server_cert)
+        self.server_cert = server_cert
+        self.access_code = access_code
 
         self.session = requests.Session()
 
+        self.auth_token = None
+
+    def authenticate(self):
+        try:
+            self.auth_token = self.get_auth_token()
+        except RequestError as e:
+            #if the response if 409 Conflict,
+            # Open the browser to their auth page for now
+            if e.response.status_code == 409:
+                webbrowser.open(URLs.USER_AUTH.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'), new=1)
+
+                #lol...reminds me of my Apple IIe
+                input("Once authenticated, hit a key to continue...")
+                self.auth_token = self.get_auth_token()
+            else:
+                raise
+
         # NOTE Any better to store headers in the session?
-        #self.session.headers = {'Content-Type': 'application/json' }
+        #self.session.headers = {'Content-Type': 'application/json'}
 
-    @property
-    def access_token(self):
-        return self._access_token
-
-    @access_token.setter
-    def access_token(self, value):
-        self._access_token = value
-        if value:
-            self.HEADERS.update({'Authorization':'Bearer %s' % value})
-        else:
-            self.HEADERS.update({'Authorization': None})
-        # NOTE if None is passed in, should we remove the value?
 
     @classmethod
     def from_config(klass, path):
@@ -68,12 +71,10 @@ class Client(RestAPI):
         client = config['client']
 
         client_id = client['client_id']
-        account_id = client['account_id'] # NOTE this doesn't really need to be mandatory
         redirect_url = client['redirect_url']
-        refresh_token = client['refresh_token']
-        server_cert = client['server_cert']
+        server_cert = client.get('server_cert', False)
 
-        return Client(client_id, account_id, redirect_url, refresh_token, server_cert=server_cert)
+        return Client(client_id, redirect_url, server_cert)
 
 
     def get(self, url, params=None, headers=None, timeout=2, **kwargs):

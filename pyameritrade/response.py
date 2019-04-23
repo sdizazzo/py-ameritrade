@@ -8,13 +8,11 @@ from pyameritrade.urls import URLs
 from pyameritrade.items import TokenItem, QuoteItem, InstrumentItem,\
                                AccountItem, PriceHistoryItem, MoverItem
 
-from pyameritrade.token_authenticator import TokenAuthenticator
-
 from pyameritrade.exception import RequestError
 from pyameritrade.utils import pp
 
 class Response():
-    logger = logging.getLogger('ameritrade.Response')
+    logger = logging.getLogger('pyameritrade.Response')
 
     def __init__(self, url, raw_response, client):
         self.url = url
@@ -32,8 +30,6 @@ class Response():
             # should we take the encoding into account?
         if self.raw_response.headers['Content-Type'].startswith('application/json'):
             data = ujson.loads(self.raw_response.content)
-        elif self.raw_response.headers['Content-Type'].startswith('text/html'):
-            data = self.raw_response.content
         else:
             raise TypeError("Not Configured to handle %s" % self.raw_response.headers['Content-Type'])
 
@@ -46,8 +42,8 @@ class Response():
         if URLs.match(URLs.TOKEN, url):
             return TokenItem(data, client)
 
-        elif URLs.match(URLs.AUTH_CODE, url):
-            return TokenAuthenticator(data, client)
+        elif self.client.redirect_url + URLs.AUTH_TOKEN.value == url:
+            return TokenItem(data, client)
 
         elif URLs.match(URLs.QUOTES, url):
             quotes = list()

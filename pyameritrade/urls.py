@@ -11,7 +11,6 @@ class NoValue(Enum):
 class URLs(NoValue):
     ROOT = "https://api.tdameritrade.com/v1"
     TOKEN = ROOT + "/oauth2/token"
-    AUTH_CODE = "https://auth.tdameritrade.com/auth?response_type=code&redirect_uri=%s&client_id=%s"
     GET_ACCOUNT = ROOT + "/accounts/%s"
     GET_LINKED_ACCOUNTS = ROOT + "/accounts"
     QUOTES = ROOT + "/marketdata/quotes"
@@ -20,8 +19,10 @@ class URLs(NoValue):
     GET_INSTRUMENT = SEARCH_INSTRUMENTS + "/%s"
     GET_MOVERS = ROOT + "/marketdata/%s/movers"
 
+    #token server
+    AUTH_TOKEN = '/auth_token'
+    USER_AUTH = "https://auth.tdameritrade.com/auth?response_type=code&redirect_uri=%s&client_id=%s"
+
     @classmethod
     def match(klass, URL, url):
-                                                        #There's probably a more 
-                                                        #general way to do this
-        return re.match(URL.value.replace('%s','.+').replace('?', r'\?'), url)
+        return re.match(URL.value.replace('%s','.+'), url)

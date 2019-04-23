@@ -13,7 +13,7 @@ import plotly.plotly
 import plotly.graph_objs
 
 class AmeritradeItem():
-    logger = logging.getLogger('ameritrade.Item')
+    logger = logging.getLogger('pyameritrade.Item')
 
     def __init__(self, json, client):
         self.json = json
@@ -39,7 +39,7 @@ class ReprMix():
 
 
 class TokenItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('ameritrade.TokenItem')
+    logger = logging.getLogger('pyameritrade.TokenItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
@@ -48,7 +48,7 @@ class TokenItem(AmeritradeItem, ReprMix):
 
 
 class QuoteItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('ameritrade.QuoteItem')
+    logger = logging.getLogger('pyameritrade.QuoteItem')
 
     def __init__(self, symbol, json, client):
         AmeritradeItem.__init__(self, json, client)
@@ -57,14 +57,14 @@ class QuoteItem(AmeritradeItem, ReprMix):
 
 
 class InstrumentItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('ameritrade.InstrumentItem')
+    logger = logging.getLogger('pyameritrade.InstrumentItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
 class AccountItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('ameritrade.AccountItem')
+    logger = logging.getLogger('pyameritrade.AccountItem')
 
     def __init__(self, account_type, json, client):
         AmeritradeItem.__init__(self, json, client)
@@ -75,14 +75,14 @@ class AccountItem(AmeritradeItem, ReprMix):
         self.account_type = account_type
 
 class MoverItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('ameritrade.MoverItem')
+    logger = logging.getLogger('pyameritrade.MoverItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
 class PriceHistoryItem(AmeritradeItem):
-    logger = logging.getLogger('ameritrade.PriceHistoryItem')
+    logger = logging.getLogger('pyameritrade.PriceHistoryItem')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
@@ -97,7 +97,8 @@ class PriceHistoryItem(AmeritradeItem):
 
 
     def generate_graph(self, trace='line', volume=True, filename=None,
-                             simple_averages=None, exp_averages=None):
+                             simple_averages=None, exp_averages=None,
+                             interactive=False):
 
         # I'm not sure this sould be a method on this class, but on a 
         # second layer.  I'm not sure I will ever get to that much detail with this
@@ -184,7 +185,9 @@ class PriceHistoryItem(AmeritradeItem):
         fig['layout'].update(yaxis2=dict(
                              domain=[0.0,0.2])
                             )
-
-        plotly.plotly.plot(fig, filename=filename)
+        if interactive:
+            return plotly.plotly.iplot(fig, filename=filename)
+        else:
+            return plotly.plotly.plot(fig, filename=filename)
 
 

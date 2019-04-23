@@ -1,9 +1,7 @@
 {
     "client"                : {      
         "client_id"                  : "MyAppName",
-        "account_id"                 : "123456789",
         "redirect_url"               : "https://127.0.0.1",
-        "refresh_token"              : ""
-        "server_cert"                : ".../chain.pem"
+        "server_cert"                : "/path/to/chain.pem <!--optional-->"
     }
 }
