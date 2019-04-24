@@ -9,7 +9,6 @@ import ujson
 
 from pyameritrade.rest_api import RestAPI
 from pyameritrade.response import Response
-from pyameritrade.items import TokenItem
 from pyameritrade.urls import URLs
 from pyameritrade.exception import RequestError
 from pyameritrade.utils import pp
