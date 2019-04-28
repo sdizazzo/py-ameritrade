@@ -39,6 +39,7 @@ class Client(RestAPI):
 
         self.auth_token = None
 
+
     def authenticate(self):
         try:
             self.auth_token = self.get_auth_token()
@@ -46,6 +47,10 @@ class Client(RestAPI):
             #if the response if 409 Conflict,
             # Open the browser to their auth page for now
             if e.response.status_code == 409:
+                #
+                # Maybe I really _can_ automate the whole process
+                # Try again one day when you are bored...
+                #
                 webbrowser.open(URLs.USER_AUTH.value % (self.redirect_url, self.client_id+'@AMER.OAUTHAP'), new=1)
 
                 #lol...reminds me of my Apple IIe
@@ -76,7 +81,7 @@ class Client(RestAPI):
         return Client(client_id, redirect_url, server_cert)
 
 
-    def get(self, url, params=None, headers=None, timeout=2, **kwargs):
+    def get(self, url, params=None, headers=None, timeout=(3.05, 27), **kwargs):
         self.logger.info('GET %s' % url)
 
         # This doesnt work how I'm expecting.
@@ -96,7 +101,7 @@ class Client(RestAPI):
         return response.items
 
 
-    def post(self, url, params, headers=None, timeout=2, **kwargs):
+    def post(self, url, params, headers=None, timeout=(3.05, 27), **kwargs):
         self.logger.info('POST %s' % url)
 
         headers = self.HEADERS if not headers else headers.update(self.HEADERS)
@@ -116,6 +121,6 @@ class Client(RestAPI):
 
 if __name__ == '__main__':
     client = Client.from_config('client.config')
-    client.grant_refresh_token()
+    client.authenticate()
     print(client.get_quotes('PTN'))
 

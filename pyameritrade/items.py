@@ -14,6 +14,8 @@ import plotly.plotly as py
 import plotly
 import plotly.graph_objs as go
 
+
+
 class AmeritradeItem():
     logger = logging.getLogger('pyameritrade.Item')
 
@@ -22,51 +24,63 @@ class AmeritradeItem():
         self.client = client
 
         for k, v in self.json.items():
+            #cant begin a variable/attr with a number.
+            # ie 52WkHigh
+            if isinstance(k, str) and k[0].isdigit():
+                k = '_'+k
             setattr(self, k, v)
 
 
     def __repr__(self):
-        # This isn't very useful as is
-        desc = "< "
+        attrs = dict()
         for k, v in self.__dict__.items():
             if not v or k in ('json', 'client'): continue
-            desc += "%s : %s, " % (k, v)
-        desc += " >"
-        return pp.pformat(desc)
+            attrs[k] = v
+        return pp.pformat(attrs)
 
 
-class ReprMix():
+
+class Describe():
     def __repr__(self):
-        return '     [  '+ self.__class__.__name__ +'  ]' + "     " + AmeritradeItem.__repr__(self)
+        return '     [  '+ self.__class__.__name__ +'  ]\n' + AmeritradeItem.__repr__(self)
 
 
-class TokenItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('pyameritrade.TokenItem')
+class Properties():
+    logger = logging.getLogger('pyameritrade.Properties')
+
+    @property
+    def quote(self):
+        return self.client.get_quotes(self.symbol)[0]
+
+    def price_history(self, **kwargs):
+        return self.client.get_price_history(self.symbol, **kwargs)
+
+
+
+
+class Token(AmeritradeItem, Describe):
+    logger = logging.getLogger('pyameritrade.Token')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
-        #TODO Is this needed anymore?
-        self.client.access_token = self.access_token
 
 
-class QuoteItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('pyameritrade.QuoteItem')
+class Quote(AmeritradeItem, Describe):
+    logger = logging.getLogger('pyameritrade.Quote')
 
     def __init__(self, symbol, json, client):
         AmeritradeItem.__init__(self, json, client)
-        #NOTE Am I sure we even need to manually set the symbol like this?
-        self.symbol = symbol
 
 
-class InstrumentItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('pyameritrade.InstrumentItem')
+class Instrument(AmeritradeItem, Properties, Describe):
+    logger = logging.getLogger('pyameritrade.Instrument')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
-class AccountItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('pyameritrade.AccountItem')
+class Account(AmeritradeItem, Describe):
+    logger = logging.getLogger('pyameritrade.Account')
 
     def __init__(self, account_type, json, client):
         AmeritradeItem.__init__(self, json, client)
@@ -77,15 +91,15 @@ class AccountItem(AmeritradeItem, ReprMix):
         self.account_type = account_type
 
 
-class MoverItem(AmeritradeItem, ReprMix):
-    logger = logging.getLogger('pyameritrade.MoverItem')
+class Mover(AmeritradeItem, Properties, Describe):
+    logger = logging.getLogger('pyameritrade.Mover')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
-class PriceHistoryItem(AmeritradeItem, Chart):
-    logger = logging.getLogger('pyameritrade.PriceHistoryItem')
+class PriceHistory(AmeritradeItem, Chart):
+    logger = logging.getLogger('pyameritrade.PriceHistory')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)

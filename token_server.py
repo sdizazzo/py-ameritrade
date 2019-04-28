@@ -40,8 +40,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/':
             code = parse_qs(query_string)['code']
             am_client = Client(CLIENT_ID, REDIRECT_URL, access_code=code)
-            token = am_client.grant_offline_token()
-            AUTH_TOKEN = token.json
+            AUTH_TOKEN = am_client.grant_offline_token().json
 
             self._set_headers()
             self.wfile.write('{"message": "auth token set"}'.encode('utf-8'))

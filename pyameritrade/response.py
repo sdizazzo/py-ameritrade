@@ -5,8 +5,8 @@ import logging
 import ujson
 
 from pyameritrade.urls import URLs
-from pyameritrade.items import TokenItem, QuoteItem, InstrumentItem,\
-                               AccountItem, PriceHistoryItem, MoverItem
+from pyameritrade.items import Token, Quote, Instrument,\
+                               Account, PriceHistory, Mover
 
 from pyameritrade.exception import RequestError
 from pyameritrade.utils import pp
@@ -40,43 +40,43 @@ class Response():
         # check url to see which type of response we are expecting,
         # hence which type of items to return
         if URLs.match(URLs.TOKEN, url):
-            return TokenItem(data, client)
+            return Token(data, client)
 
         elif self.client.redirect_url + URLs.AUTH_TOKEN.value == url:
-            return TokenItem(data, client)
+            return Token(data, client)
 
         elif URLs.match(URLs.QUOTES, url):
             quotes = list()
             for symbol, quote_json in data.items():
-                quotes.append(QuoteItem(symbol, quote_json, client))
+                quotes.append(Quote(symbol, quote_json, client))
             return quotes
 
         elif URLs.match(URLs.GET_INSTRUMENT, url):
             #Assuming it's safe to just grab the first item...
-            return InstrumentItem(next(iter(data)), client)
+            return Instrument(next(iter(data)), client)
 
         elif URLs.match(URLs.SEARCH_INSTRUMENTS, url):
             instruments = list()
             for symbol, instrument_json in data.items():
-                instruments.append(InstrumentItem(instrument_json, client))
+                instruments.append(Instrument(instrument_json, client))
             return instruments
 
         elif URLs.match(URLs.GET_ACCOUNT, url):
             account_type = next(iter(data))
-            return AccountItem(account_type, data[account_type], client)
+            return Account(account_type, data[account_type], client)
 
         elif URLs.match(URLs.GET_LINKED_ACCOUNTS, url):
             accounts = list()
             for all_accounts_json in data:
                 for account_type, account_json in all_accounts_json.items():
-                    accounts.append(AccountItem(account_type, account_json, client))
+                    accounts.append(Account(account_type, account_json, client))
             return accounts
 
         elif URLs.match(URLs.PRICE_HISTORY, url):
-            return PriceHistoryItem(data, client)
+            return PriceHistory(data, client)
 
         elif URLs.match(URLs.GET_MOVERS, url):
             movers = list()
             for mover_json in data:
-                movers.append(MoverItem(mover_json, client))
+                movers.append(Mover(mover_json, client))
             return movers

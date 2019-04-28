@@ -9,47 +9,61 @@ import plotly.graph_objs as go
 
 
 class Chart():
+    #
+    # Does it make sense to make this a mixin
+    # when this is specific to PriceHistory?
+    # Is there reason to make any other kind of
+    # chart or graph? It might look neat, but
+    # is pretty useless for analysis.
+
+    # I really just wanted to move the funcionality 
+    # out of the items.py
+    #  Maybe that is reason enough.
+    #
     logger = logging.getLogger('pyameritrade.Chart')
 
-    def _trace_price(self, style):
+    def _trace_price(self, style, candles=None):
+        if not candles:
+            candles = self.candles
+
         if style == 'Scatter':
-            s_trace= go.Scatter(x=self.candles['datetime'],
-                                y=['close'],
-                                fill='tozeroy',
-                                name=self.symbol
-                               )
-            self.figure.append_trace(s_trace, 1, 1)
+            trace = go.Scatter(x=candles['datetime'],
+                              y=['close'],
+                              # TODO Something I did broke the fill area
+                              # I looked around, but couldn't figure 
+                              # it out.  Will have to look again.
+                              fill='tozeroy',
+                              name=self.symbol,
+                             )
 
         elif style == 'Candlestick':
-            c_trace = go.Candlestick(x=self.candles['datetime'],
-                                     open=self.candles['open'],
-                                     close=self.candles['close'],
-                                     high=self.candles['high'],
-                                     low=self.candles['low'],
-                                     name=self.symbol
-                                    )
-            self.figure.append_trace(c_trace, 1, 1)
-
+            trace = go.Candlestick(x=candles['datetime'],
+                                   open=candles['open'],
+                                   close=candles['close'],
+                                   high=candles['high'],
+                                   low=candles['low'],
+                                   name=self.symbol
+                                  )
         elif style == 'Ohlc':
-            o_trace = go.Ohlc(x=self.candles['datetime'],
-                              open=self.candles['open'],
-                              close=self.candles['close'],
-                              high=self.candles['high'],
-                              low=self.candles['low'],
-                              name=self.symbol
-                             )
-            self.figure.append_trace(o_trace, 1, 1)
-
+            trace = go.Ohlc(x=candles['datetime'],
+                            open=candles['open'],
+                            close=candles['close'],
+                            high=candles['high'],
+                            low=candles['low'],
+                            name=self.symbol
+                           )
         else:
             raise TypeError("Unhandled style '%s'" % style)
 
+        self.figure.append_trace(trace, 1, 1)
+
 
     def _trace_volume(self):
-        v_trace = go.Bar(x=self.candles['datetime'],
-                         y=self.candles['volume'],
-                         name='Volume',
-                         yaxis='y2')
-        self.figure.append_trace(v_trace, 2, 1)
+        trace = go.Bar(x=self.candles['datetime'],
+                       y=self.candles['volume'],
+                       name='Volume',
+                       yaxis='y2')
+        self.figure.append_trace(trace, 2, 1)
 
 
     def _trace_averages(self, type_, averages):
@@ -61,13 +75,13 @@ class Chart():
             else:
                 raise TypeError("Unhandled average type: %s" % type_)
 
-            avg_trace = go.Scatter(x=self.candles['datetime'],
-                                   y=data,
-                                   name='%s day %s' % (average, type_))
-            self.figure.append_trace(avg_trace, 1, 1)
+            trace = go.Scatter(x=self.candles['datetime'],
+                               y=data,
+                               name='%s day %s' % (average, type_))
+            self.figure.append_trace(trace, 1, 1)
 
 
-    def _plot(self, offline, config):
+    def _plot(self, offline, config, filename):
         self.figure['layout'].update(title=self.symbol)
         self.figure['layout'].update(yaxis=dict(
                                                 type='log',
@@ -79,21 +93,38 @@ class Chart():
         self.figure['layout'].update(yaxis2=dict(
                                      domain=[0.0,0.2])
                                      )
+
+        #seems stupid.  I'm tired.
+        # .plot() cant handle filename=None
+        kwargs = dict(config=config)
+        if filename: kwargs.update(filename=filename)
+
         if offline:
-            plotly.offline.plot(self.figure, config=config)
+            plotly.offline.plot(self.figure,
+                                **kwargs)
         else:
-            py.plot(self.figure)
+            py.plot(self.figure, **kwargs)
+
+
+    #
+    # Working toward adding several symbols to the same chart
+    # perhaps for use with Movers or any other
+    #
+    # will take some decoupling
+    #
+    def compare(self, candles):
+        self._trace_price('Scatter', candles=candles)
 
 
     def generate_chart(self, style='Scatter', filename=None,
                              simple_averages=None, exp_averages=None,
-                             offline=True, config={'scrollZoom':True}):
+                             offline=True, config={'scrollZoom':True},
+                      ):
 
         self.figure = tools.make_subplots(rows=2, specs=[[{}], [{}]],
                                           shared_xaxes=True, shared_yaxes=True,
                                           vertical_spacing=0.0001
                                          )
-
         self._trace_price(style)
 
         self._trace_volume()
@@ -104,5 +135,5 @@ class Chart():
         if exp_averages:
              self._trace_averages('EMA', exp_averages)
 
-        self._plot(offline, config)
+        self._plot(offline, config, filename)
 
