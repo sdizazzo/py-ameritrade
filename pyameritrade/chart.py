@@ -28,10 +28,9 @@ class Chart():
 
         if style == 'Scatter':
             trace = go.Scatter(x=candles['datetime'],
-                              y=['close'],
-                              # TODO Something I did broke the fill area
-                              # I looked around, but couldn't figure 
-                              # it out.  Will have to look again.
+                              # LOLOLOLOLOL
+                              # I blame it on the Topamax!
+                              y=candles['close'],
                               fill='tozeroy',
                               name=self.symbol,
                              )
