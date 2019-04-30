@@ -25,9 +25,9 @@ class Chart():
     """
 
 
-    def __init__(self, ph, style='Scatter', filename=None,
-                 simple_averages=None, exp_averages=None,
-                 offline=True, config={'scrollZoom':True},
+    def __init__(self, ph, style='Scatter',
+                 simple_averages=None,
+                 exp_averages=None,
                 ):
         """
             for 'ph' accept a PriceHistory item or any iterable with
@@ -65,11 +65,6 @@ class Chart():
 
             if exp_averages:
                  self._trace_averages(ph, 'EMA', exp_averages)
-
-
-        # TODO This should no longer be automatic
-        # make the user call it
-        self._plot(offline, config, filename)
 
 
     def _trace_price(self, yaxis, ph, style):
@@ -131,15 +126,15 @@ class Chart():
             self.figure.append_trace(trace, 1, 1)
 
 
-    def _plot(self, offline, config, filename):
-        # TODO How do you name a chart when there are multiple symbols?
-        #self.figure['layout'].update(title=self.symbol)
+    def plot(self, offline=True, config={'scrollZoom':True},
+             filename=None, title=None, _iplot=False):
+
+        self.figure['layout'].update(title=title)
         yaxis = dict(type='log', autorange=True)
         if self.show_volume:
             yaxis.update(domain=[0.2,1.0])
         self.figure['layout'].update(yaxis=yaxis)
 
-        #VOLUME
         if self.show_volume:
             self.figure['layout'].update(yaxis2=dict(
                                          domain=[0.0,0.2])
@@ -149,9 +144,16 @@ class Chart():
         kwargs = dict(config=config)
         if filename: kwargs.update(filename=filename)
 
+        plot_func = 'iplot' if _iplot else 'plot'
+
         if offline:
-            plotly.offline.plot(self.figure,
-                                **kwargs)
+            plot_func = getattr(plotly.offline, plot_func)
+            plot_func(self.figure, **kwargs)
         else:
-            py.plot(self.figure, **kwargs)
+            plot_func = getattr(py, plot_func)
+            plot_func(self.figure, **kwargs)
+
+
+    def iplot(self, **kwargs):
+        self.plot(_iplot=True, **kwargs)
 

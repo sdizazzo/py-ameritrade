@@ -46,18 +46,19 @@ if __name__ == '__main__':
     Chart(ph,
           style='Scatter',
           simple_averages=(50, 200),
-          exp_averages=(50,),
-          config={'scrollZoom':True},
-          offline=True,
-          filename='dow_20year.html'
+          exp_averages=(50,)
+    ).plot(config={'scrollZoom':True},
+           offline=True,
+           filename='dow_20year.html',
+           title='$DJI'
     )
 
     ph = am_client.get_price_history('aapl', period_type='day', period=1, frequency_type='minute', frequency=5)
-    Chart(ph, style='Candlestick', offline=True)
+    Chart(ph, style='Candlestick').plot(title='AAPL 5 min Candles')
 
     phs = list()
     for quote in am_client.get_quotes('AAPL,GOOG,MSFT,NFLX,DIS'):
         ph = quote.price_history(period_type='day', period=1, frequency_type='minute', frequency=1)
         phs.append(ph)
 
-    Chart(phs, style='Scatter', offline=True)
+    Chart(phs, style='Scatter').plot(title='Compare')
