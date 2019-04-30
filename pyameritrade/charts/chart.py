@@ -32,19 +32,26 @@ class Chart():
         """
             for 'ph' accept a PriceHistory item or any iterable with
             each item having an attached price_history atribute
+
+            Shouldn't it just take a panda's Dataframe with the candles?
+            Why depend on the PriceHistory obkect?
         """
 
-        self.figure = tools.make_subplots(rows=2, specs=[[{}], [{}]],
-                                          shared_xaxes=True, shared_yaxes=True,
-                                          vertical_spacing=0.0001
+        if hasattr(ph, '__iter__'):
+            self.show_volume = False
+            rows = len(ph)
+        else:
+            self.show_volume = True
+            rows = 2
+
+        self.figure = tools.make_subplots(rows=rows,
+                                          shared_xaxes=True,
+                                          shared_yaxes=True,
                                          )
         if hasattr(ph, '__iter__'):
-            #not quite there yet...
             for i, p in enumerate(ph, 1):
                 self._trace_price(i, p, style)
-                # need to pass it in with the number of the
-                # enumerated index
-                yaxis = dict(overlaying='y', side='right')
+                yaxis = dict(autorange=True, type='log')
                 kwargs = {'yaxis'+str(i):yaxis}
                 self.figure['layout'].update(**kwargs)
         else:
@@ -59,6 +66,9 @@ class Chart():
             if exp_averages:
                  self._trace_averages(ph, 'EMA', exp_averages)
 
+
+        # TODO This should no longer be automatic
+        # make the user call it
         self._plot(offline, config, filename)
 
 
@@ -68,10 +78,11 @@ class Chart():
                               # LOLOLOLOLOL
                               # I blame it on the Topamax!
                               y=ph.candles['close'],
-                              #fill='tozeroy',
                               name=ph.symbol,
                               yaxis='y'+str(yaxis)
                              )
+            if self.show_volume:
+                trace.update(dict(fill='tozeroy'))
 
         elif style == 'Candlestick':
             trace = go.Candlestick(x=ph.candles['datetime'],
@@ -94,7 +105,7 @@ class Chart():
         else:
             raise TypeError("Unhandled style '%s'" % style)
 
-        self.figure.append_trace(trace, 1, 1)
+        self.figure.append_trace(trace, yaxis, 1)
 
 
     def _trace_volume(self, ph):
@@ -123,17 +134,16 @@ class Chart():
     def _plot(self, offline, config, filename):
         # TODO How do you name a chart when there are multiple symbols?
         #self.figure['layout'].update(title=self.symbol)
-        self.figure['layout'].update(yaxis=dict(
-                                                type='linear',
-                                                domain=[0.2,1.0],
-                                                autorange=True,
-                                               )
-                                    )
+        yaxis = dict(type='log', autorange=True)
+        if self.show_volume:
+            yaxis.update(domain=[0.2,1.0])
+        self.figure['layout'].update(yaxis=yaxis)
 
-        self.figure['layout'].update(yaxis2=dict(
-                                     domain=[0.0,0.2])
-                                     )
-
+        #VOLUME
+        if self.show_volume:
+            self.figure['layout'].update(yaxis2=dict(
+                                         domain=[0.0,0.2])
+                                        )
         #seems stupid.  I'm tired.
         # .plot() cant handle filename=None
         kwargs = dict(config=config)

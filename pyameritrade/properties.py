@@ -16,7 +16,7 @@ class QuoteProperty():
     quote = property(getvalue)
 
 
-class PHProperty():
+class PHMethod():
     # SUPER simple caching mechanism
     # if this was long livced at all it would
     # get out of sync with the current price
@@ -27,5 +27,6 @@ class PHProperty():
     candles = None
     def price_history(self, **kwargs):
         if self.candles:return self.candles
-        self.candles = self.client.get_price_history(self.symbol, **kwargs).candles
-        return self.candles
+        ph = self.client.get_price_history(self.symbol, **kwargs)
+        self.candles = ph.candles
+        return ph

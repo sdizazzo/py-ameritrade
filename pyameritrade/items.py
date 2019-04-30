@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 from pyameritrade.utils import pp
-from pyameritrade.properties import QuoteProperty, PHProperty
+from pyameritrade.properties import QuoteProperty, PHMethod
 
 import ujson
 import pandas
@@ -55,14 +55,14 @@ class Token(AmeritradeItem, Describe):
         AmeritradeItem.__init__(self, json, client)
 
 
-class Quote(AmeritradeItem, Describe):
+class Quote(AmeritradeItem, PHMethod, Describe):
     logger = logging.getLogger('pyameritrade.Quote')
 
     def __init__(self, symbol, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
-class Instrument(AmeritradeItem, QuoteProperty, PHProperty, Describe):
+class Instrument(AmeritradeItem, QuoteProperty, PHMethod, Describe):
     logger = logging.getLogger('pyameritrade.Instrument')
 
     def __init__(self, json, client):
@@ -81,7 +81,7 @@ class Account(AmeritradeItem, Describe):
         self.account_type = account_type
 
 
-class Mover(AmeritradeItem, QuoteProperty, PHProperty, Describe):
+class Mover(AmeritradeItem, QuoteProperty, PHMethod, Describe):
     logger = logging.getLogger('pyameritrade.Mover')
 
     def __init__(self, json, client):

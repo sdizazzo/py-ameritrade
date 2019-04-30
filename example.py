@@ -5,8 +5,9 @@ import logging
 from datetime import datetime, timedelta
 
 from pyameritrade.client import Client
-from pyameritrade.utils import logger
+from pyameritrade.utils import logger, pp
 from pyameritrade.charts.chart import Chart
+
 
 if __name__ == '__main__':
     #logger.setLevel(logging.DEBUG)
@@ -16,6 +17,7 @@ if __name__ == '__main__':
 
     movers = am_client.get_movers("$SPX.X", direction='up', change='value')
     for m in movers:
+        #m.price_history(period_type='day', period=1, frequency_type='minute', frequency=5)
         off_high = (1 - (m.quote.lastPrice/m.quote._52WkHigh))*100
         above_low = ((m.quote.lastPrice/m.quote._52WkLow)-1)*100
         print("*** Symbol: %s  ***" % m.symbol)
@@ -28,11 +30,10 @@ if __name__ == '__main__':
         print(quote)
 
     instrument = am_client.get_instrument('PTN')
-    print(instrument.price_history(period_type='year', period=1, frequency_type='weekly'))
 
-    instruments = am_client.search_instruments(r'X.*', 'symbol-regex')
+    instruments = am_client.search_instruments(r'XT.*', 'symbol-regex')
     for instrument in instruments:
-        print(instrument)
+        instrument.price_history(period_type='day', period=1, frequency_type='minute', frequency=5)
 
     accounts = am_client.get_linked_accounts(fields='positions')
     print(accounts)
@@ -54,3 +55,9 @@ if __name__ == '__main__':
     ph = am_client.get_price_history('aapl', period_type='day', period=1, frequency_type='minute', frequency=5)
     Chart(ph, style='Candlestick', offline=True)
 
+    phs = list()
+    for quote in am_client.get_quotes('AAPL,GOOG,MSFT,NFLX,DIS'):
+        ph = quote.price_history(period_type='day', period=1, frequency_type='minute', frequency=1)
+        phs.append(ph)
+
+    Chart(phs, style='Scatter', offline=True)
