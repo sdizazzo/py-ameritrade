@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 from pyameritrade.utils import pp
-from pyameritrade.chart import Chart
+from pyameritrade.properties import QuoteProperty, PHProperty
 
 import ujson
 import pandas
@@ -34,7 +34,9 @@ class AmeritradeItem():
     def __repr__(self):
         attrs = dict()
         for k, v in self.__dict__.items():
-            if not v or k in ('json', 'client'): continue
+            #Do we want to show None/empty values?
+            #if not v or k in ('json', 'client'): continue
+            if k in ('json', 'client'): continue
             attrs[k] = v
         return pp.pformat(attrs)
 
@@ -43,18 +45,6 @@ class AmeritradeItem():
 class Describe():
     def __repr__(self):
         return '     [  '+ self.__class__.__name__ +'  ]\n' + AmeritradeItem.__repr__(self)
-
-
-class Properties():
-    logger = logging.getLogger('pyameritrade.Properties')
-
-    @property
-    def quote(self):
-        return self.client.get_quotes(self.symbol)[0]
-
-    def price_history(self, **kwargs):
-        return self.client.get_price_history(self.symbol, **kwargs)
-
 
 
 
@@ -72,7 +62,7 @@ class Quote(AmeritradeItem, Describe):
         AmeritradeItem.__init__(self, json, client)
 
 
-class Instrument(AmeritradeItem, Properties, Describe):
+class Instrument(AmeritradeItem, QuoteProperty, PHProperty, Describe):
     logger = logging.getLogger('pyameritrade.Instrument')
 
     def __init__(self, json, client):
@@ -91,14 +81,14 @@ class Account(AmeritradeItem, Describe):
         self.account_type = account_type
 
 
-class Mover(AmeritradeItem, Properties, Describe):
+class Mover(AmeritradeItem, QuoteProperty, PHProperty, Describe):
     logger = logging.getLogger('pyameritrade.Mover')
 
     def __init__(self, json, client):
         AmeritradeItem.__init__(self, json, client)
 
 
-class PriceHistory(AmeritradeItem, Chart):
+class PriceHistory(AmeritradeItem):
     logger = logging.getLogger('pyameritrade.PriceHistory')
 
     def __init__(self, json, client):

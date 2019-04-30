@@ -14,13 +14,14 @@ from pyameritrade.urls import URLs
 CLIENT_ID = "**********@AMER.OAUTHAP"
 REDIRECT_URL = "https://127.0.0.1"
 
+AUTH_TOKEN = None
+
 etc_dir = os.path.join(os.path.dirname(__file__), 'etc')
 
 logging.basicConfig(level=logging.DEBUG,
                     handlers=[logging.FileHandler("token_server.log")],
                     format='%(asctime)s %(message)s',
                     )
-AUTH_TOKEN = None
 
 class Handler(BaseHTTPRequestHandler):
 
