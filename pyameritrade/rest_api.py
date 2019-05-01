@@ -44,7 +44,7 @@ class RestAPI():
         headers = {'Content-Type':'application/x-www-form-urlencoded'}
 
         refresh_token = self.post(URLs.TOKEN.value, params, headers)
-        self.HEADERS.update({'Authorization':'Bearer %s' % refresh_token.access_token})
+        self.session.headers.update({'Authorization':'Bearer %s' % refresh_token.access_token})
         return refresh_token
 
 
@@ -62,8 +62,7 @@ class RestAPI():
 
     def get_auth_token(self):
         return self.get(self.redirect_url+ URLs.AUTH_TOKEN.value,
-                        headers=self.HEADERS, verify=self.server_cert)
-
+                        verify=self.server_cert)
 
     ############################################################
     #### Quotes

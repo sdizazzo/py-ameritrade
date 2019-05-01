@@ -27,8 +27,6 @@ from pyameritrade.utils import pp
 class Client(RestAPI):
     logger = logging.getLogger('pyameritrade.Client')
 
-    HEADERS = {'Content-Type': 'application/json' }
-
     def __init__(self, client_id, redirect_url, server_cert=False, access_code=None):
         self.client_id = client_id
         self.redirect_url = redirect_url
@@ -39,6 +37,7 @@ class Client(RestAPI):
 
         self.auth_token = None
 
+        self.session.headers = {'Content-Type': 'application/json'}
 
     def authenticate(self):
         try:
@@ -58,9 +57,6 @@ class Client(RestAPI):
                 self.auth_token = self.get_auth_token()
             else:
                 raise
-
-        # NOTE Any better to store headers in the session?
-        #self.session.headers = {'Content-Type': 'application/json'}
 
 
     @classmethod
@@ -84,9 +80,6 @@ class Client(RestAPI):
     def get(self, url, params=None, headers=None, timeout=(3.05, 27), **kwargs):
         self.logger.info('GET %s' % url)
 
-        # This doesnt work how I'm expecting.
-        # better to use the session object
-        headers = self.HEADERS if not headers else headers.update(self.HEADERS)
         response = self.session.get(url, params=params, headers=headers, timeout=timeout, **kwargs)
 
         # a 401 will trigger a request to refresh our token 
@@ -103,8 +96,6 @@ class Client(RestAPI):
 
     def post(self, url, params, headers=None, timeout=(3.05, 27), **kwargs):
         self.logger.info('POST %s' % url)
-
-        headers = self.HEADERS if not headers else headers.update(self.HEADERS)
 
         # Do we need to check for 401 token expired errors on POST?
         # Maybe only once we get to the access_token itself expiring
